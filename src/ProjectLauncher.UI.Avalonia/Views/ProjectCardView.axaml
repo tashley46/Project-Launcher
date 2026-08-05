@@ -160,7 +160,14 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2" Spacing="5">
-                            <TextBlock Text="STREAK" Classes="metric-label" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="STREAK" Classes="metric-label" />
+                                <Button Grid.Column="1"
+                                        Classes="secondary-action"
+                                        Content="Refresh"
+                                        IsVisible="{Binding IsActiveProject}"
+                                        Command="{Binding RefreshStreakCommand}" />
+                            </Grid>
                             <TextBlock Text="{Binding StreakLabel}"
                                        FontSize="18"
                                        FontWeight="SemiBold"

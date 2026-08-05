@@ -6,6 +6,7 @@ using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
 using ProjectLauncher.Core.Shared;
 using ProjectLauncher.Core.Streaks.Queries;
+using ProjectLauncher.Core.Streaks.Commands;
 
 namespace ProjectLauncher.ViewModels;
 
@@ -21,7 +22,8 @@ public sealed class MainViewModel(
     GetProjectGitStatusQueryHandler getProjectGitStatusHandler,
     ConnectGitHubRepositoryCommandHandler connectGitHubRepositoryHandler,
     GetGitHubRepositoryQueryHandler getGitHubRepositoryHandler,
-    GetProjectStreakQueryHandler getProjectStreakHandler) : ViewModelBase
+    GetProjectStreakQueryHandler getProjectStreakHandler,
+    RefreshProjectStreakCommandHandler refreshProjectStreakHandler) : ViewModelBase
 {
     private bool _isBusy;
     private bool _hasLoaded;
@@ -90,7 +92,25 @@ public sealed class MainViewModel(
     public void DismissError() => ErrorMessage = null;
 
     private ProjectCardViewModel CreateProjectCard(ProjectResponse response) =>
-        ProjectCardViewModel.FromResponse(response, LoadProjectDetailsAsync, SaveProjectEditAsync, ChangeArchiveStateAsync);
+        ProjectCardViewModel.FromResponse(
+            response,
+            LoadProjectDetailsAsync,
+            SaveProjectEditAsync,
+            ChangeArchiveStateAsync,
+            RefreshProjectStreakAsync);
+
+    private async Task RefreshProjectStreakAsync(ProjectCardViewModel card)
+    {
+        var result = await RunBusyAsync(() => refreshProjectStreakHandler.HandleAsync(
+            new RefreshProjectStreakCommand(card.Id)));
+        if (!result.IsSuccess || result.Value is null)
+        {
+            ShowError(result.Error?.Message);
+            return;
+        }
+        card.SetStreak(result.Value);
+        NotifyDashboardChanged();
+    }
 
     private async Task SaveProjectEditAsync(ProjectCardViewModel card)
     {

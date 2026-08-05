@@ -7,6 +7,7 @@ using ProjectLauncher.Core.Projects.Queries;
 using ProjectLauncher.Core.GitHubRepositories.Queries;
 using ProjectLauncher.Core.GitHubRepositories.Commands;
 using ProjectLauncher.Core.Streaks.Queries;
+using ProjectLauncher.Core.Streaks.Commands;
 using ProjectLauncher.Core.Infrastructure.Git;
 using ProjectLauncher.Data.EF;
 using ProjectLauncher.ViewModels;
@@ -55,6 +56,7 @@ public partial class App : Application
         services.AddTransient<GetGitHubRepositoryQueryHandler>();
         services.AddTransient<ConnectGitHubRepositoryCommandHandler>();
         services.AddTransient<GetProjectStreakQueryHandler>();
+        services.AddTransient<RefreshProjectStreakCommandHandler>();
         services.AddTransient<GetProjectGitStatusQueryHandler>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<MainWindow>(provider => new MainWindow

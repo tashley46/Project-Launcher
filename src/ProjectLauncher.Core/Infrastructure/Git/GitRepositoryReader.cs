@@ -71,6 +71,36 @@ public sealed class GitRepositoryReader(TimeProvider timeProvider) : IGitReposit
         }
     }
 
+    public async Task<GitCommitHistory> ReadCommitHistoryAsync(
+        string folderPath,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var inside = await RunGitAsync(folderPath, ["rev-parse", "--is-inside-work-tree"], cancellationToken);
+            if (inside.ExitCode != 0 || inside.Output.Trim() != "true")
+                return new GitCommitHistory(false, [], [], null);
+
+            var localEmailTask = RunGitAsync(folderPath, ["config", "user.email"], cancellationToken);
+            var globalEmailTask = RunGitAsync(folderPath, ["config", "--global", "user.email"], cancellationToken);
+            var commitsTask = RunGitAsync(folderPath,
+                ["log", "--all", "--format=%H%x1f%aI%x1f%ae"], cancellationToken);
+            await Task.WhenAll(localEmailTask, globalEmailTask, commitsTask);
+
+            var emails = new[] { (await localEmailTask).Output.Trim(), (await globalEmailTask).Output.Trim() }
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var commits = ParseCommits((await commitsTask).Output);
+            return new GitCommitHistory(true, emails, commits, null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception exception)
+        {
+            return new GitCommitHistory(false, [], [], exception.Message);
+        }
+    }
+
     private static async Task<GitCommandResult> RunGitAsync(
         string folderPath,
         IReadOnlyList<string> arguments,
@@ -150,6 +180,19 @@ public sealed class GitRepositoryReader(TimeProvider timeProvider) : IGitReposit
         return (parts[0], DateTimeOffset.TryParse(parts[1], CultureInfo.InvariantCulture,
             DateTimeStyles.RoundtripKind, out var timestamp) ? timestamp : null, parts[2]);
     }
+
+    private static IReadOnlyList<GitCommit> ParseCommits(string output) => output
+        .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+        .Select(line => line.Split('\u001f', 3))
+        .Where(parts => parts.Length == 3 && DateTimeOffset.TryParse(
+            parts[1], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _))
+        .Select(parts => new GitCommit(
+            parts[0],
+            DateTimeOffset.Parse(parts[1], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            parts[2]))
+        .GroupBy(commit => commit.Hash, StringComparer.Ordinal)
+        .Select(group => group.First())
+        .ToArray();
 
     private static string? ParseDefaultBranch(string remoteName, GitCommandResult result)
     {

@@ -6,7 +6,19 @@ public interface IGitRepositoryReader
         int projectId,
         string folderPath,
         CancellationToken cancellationToken = default);
+
+    Task<GitCommitHistory> ReadCommitHistoryAsync(
+        string folderPath,
+        CancellationToken cancellationToken = default);
 }
+
+public sealed record GitCommit(string Hash, DateTimeOffset AuthoredAt, string AuthorEmail);
+
+public sealed record GitCommitHistory(
+    bool IsGitRepository,
+    IReadOnlyList<string> IdentityEmails,
+    IReadOnlyList<GitCommit> Commits,
+    string? Error);
 
 public sealed record GitRemote(string Name, string Url);
 

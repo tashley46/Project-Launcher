@@ -11,18 +11,21 @@ public sealed class ProjectCardViewModel : ViewModelBase
     private readonly Func<ProjectCardViewModel, Task> _loadDetails;
     private readonly Func<ProjectCardViewModel, Task> _saveEdit;
     private readonly Func<ProjectCardViewModel, Task> _changeArchiveState;
+    private readonly Func<ProjectCardViewModel, Task> _refreshStreak;
     private bool _isDetailsVisible;
     private bool _isEditing;
     private bool _hasLoadedDetails;
     private GitRepositorySnapshot? _gitSnapshot;
     private string _name;
     private string _lifecycle;
+    private int _currentStreakDays;
 
     private ProjectCardViewModel(
         ProjectResponse response,
         Func<ProjectCardViewModel, Task> loadDetails,
         Func<ProjectCardViewModel, Task> saveEdit,
-        Func<ProjectCardViewModel, Task> changeArchiveState)
+        Func<ProjectCardViewModel, Task> changeArchiveState,
+        Func<ProjectCardViewModel, Task> refreshStreak)
     {
         Id = response.Id;
         IsArchived = response.IsDeleted;
@@ -30,7 +33,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
         FolderPath = response.FolderPath;
         _lifecycle = response.Lifecycle.ToString();
         IsFavorite = response.IsFavorite;
-        CurrentStreakDays = response.CurrentStreakDays;
+        _currentStreakDays = response.CurrentStreakDays;
         Description = response.Description ?? "No description has been added.";
         EditName = response.Name;
         EditDescription = response.Description ?? string.Empty;
@@ -40,12 +43,14 @@ public sealed class ProjectCardViewModel : ViewModelBase
         _loadDetails = loadDetails;
         _saveEdit = saveEdit;
         _changeArchiveState = changeArchiveState;
+        _refreshStreak = refreshStreak;
 
         ViewProjectCommand = new AsyncRelayCommand(ToggleDetailsAsync);
         BeginEditCommand = new RelayCommand(BeginEdit);
         CancelEditCommand = new RelayCommand(CancelEdit);
         SaveEditCommand = new AsyncRelayCommand(() => _saveEdit(this));
         ChangeArchiveStateCommand = new AsyncRelayCommand(() => _changeArchiveState(this));
+        RefreshStreakCommand = new AsyncRelayCommand(() => _refreshStreak(this));
     }
 
     public int Id { get; }
@@ -53,7 +58,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public bool IsActiveProject => !IsArchived;
     public string FolderPath { get; }
     public bool IsFavorite { get; }
-    public int CurrentStreakDays { get; }
+    public int CurrentStreakDays { get => _currentStreakDays; private set => SetProperty(ref _currentStreakDays, value); }
     public string Name { get => _name; private set => SetProperty(ref _name, value); }
     public string Lifecycle { get => _lifecycle; private set => SetProperty(ref _lifecycle, value); }
     public string RepositoryStatus { get; private set; }
@@ -101,13 +106,15 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public IRelayCommand CancelEditCommand { get; }
     public IAsyncRelayCommand SaveEditCommand { get; }
     public IAsyncRelayCommand ChangeArchiveStateCommand { get; }
+    public IAsyncRelayCommand RefreshStreakCommand { get; }
 
     public static ProjectCardViewModel FromResponse(
         ProjectResponse response,
         Func<ProjectCardViewModel, Task> loadDetails,
         Func<ProjectCardViewModel, Task> saveEdit,
-        Func<ProjectCardViewModel, Task> changeArchiveState) =>
-        new(response, loadDetails, saveEdit, changeArchiveState);
+        Func<ProjectCardViewModel, Task> changeArchiveState,
+        Func<ProjectCardViewModel, Task> refreshStreak) =>
+        new(response, loadDetails, saveEdit, changeArchiveState, refreshStreak);
 
     public void ApplyEdit(ProjectResponse project)
     {
@@ -203,6 +210,22 @@ public sealed class ProjectCardViewModel : ViewModelBase
         OnPropertyChanged(nameof(GitHubUrl));
         OnPropertyChanged(nameof(OriginalRemoteUrl));
         OnPropertyChanged(nameof(DefaultBranchLabel));
+    }
+
+    public void SetStreak(ProjectStreakResponse streak)
+    {
+        CurrentStreakDays = streak.CurrentDays;
+        LongestStreakLabel = $"{streak.LongestDays} {(streak.LongestDays == 1 ? "day" : "days")}";
+        LastCommitLabel = streak.LastCommitByUserAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+            ?? "No matching commits yet";
+        ActiveDaysLabel = $"{streak.ActiveCommitDaysLast30} active days in the last 30";
+        CalculatedLabel = streak.CalculatedAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+            ?? "Not calculated yet";
+        OnPropertyChanged(nameof(StreakLabel));
+        OnPropertyChanged(nameof(LongestStreakLabel));
+        OnPropertyChanged(nameof(LastCommitLabel));
+        OnPropertyChanged(nameof(ActiveDaysLabel));
+        OnPropertyChanged(nameof(CalculatedLabel));
     }
 
     public void SetGitError(string message)
