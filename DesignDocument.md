@@ -465,15 +465,45 @@ Git-derived state may remain in memory rather than being stored as canonical dat
 Id
 Name
 Description?
-LocalPath
+Folder (ProjectFolder value object)
 GitRootPath?
-RepositoryUrl?
+GitHubRepository?
+Streak
 Lifecycle
 IsFavorite
 LastOpenedAt?
 CreatedAt
 UpdatedAt
 ```
+
+`Project` references an optional `GitHubRepository` entity and a required `ProjectStreak` entity. The project domain does not validate incoming values; validation occurs at the API/application boundary before a command changes persisted state.
+
+### GitHubRepository
+
+```text
+Id
+ProjectId
+Owner
+Name
+WebUrl
+OriginalRemoteUrl?
+```
+
+`GitHubRepository` is a domain entity, not a record embedded inside `Project`. It has a one-to-one relationship with a project and is optional because non-Git and non-GitHub projects remain valid.
+
+### ProjectStreak
+
+```text
+Id
+ProjectId
+CurrentDays
+LongestDays
+LastCommitByUserAt?
+ActiveCommitDaysLast30
+CalculatedAt?
+```
+
+`ProjectStreak` is a domain entity with a required one-to-one relationship to a project. Its values are derived from Git commit activity and may be persisted as a cache for immediate display. Git history remains the source of truth, and the streak is recalculated during repository refresh.
 
 ### ProjectAction
 
@@ -529,8 +559,6 @@ GitHubUrl?
 LastCommitHash?
 LastCommitSummary?
 LastCommitAt?
-ProjectCurrentStreak
-ProjectLongestStreak
 LastRefreshAt
 Error?
 ```
@@ -541,19 +569,75 @@ The snapshot is derived from Git and should not be treated as permanent domain t
 
 ## 13. Architecture
 
-Use a CQRS-lite architecure allowing for a clear and easy seperation of layers within a slice, but not over complicating a simple project. Seperate layer into 3 sections: UI, API, and Domain.
+Use CQRS-lite to clearly separate UI, application/API behavior, domain entities, and EF Core persistence without adding a mediator or ceremonial application layers.
 
-Domain should define each entity within the project database. For example a project.
-Each project should have attributes defining important data like name, folder, IsGitRepository, etc.
+The solution uses four root projects:
 
-The API layer should interact with these domains. A query on this level could be something like GetProjectStreakQuery(ProjectId) that returns an integer. A command on this level could be something like SetProjectName(ProjectId, NewName) that sets the project name.
+```text
+src/
+  ProjectLaunch.Core.Domain/
+    Project.cs
+    GitHubRepository.cs
+    ProjectStreak.cs
+    ProjectAction.cs
+    GitIdentity.cs
+    AppConfiguration.cs
 
-The UI layer should allow the user to ineract with the domain/database throuhg the API layer in an intuitive GUI format
+  ProjectLauncher.Core/
+    Projects/
+      Commands/
+      Queries/
+    GitHubRepositories/
+      Commands/
+      Queries/
+    Streaks/
+      Commands/
+      Queries/
+    ProjectActions/
+      Commands/
+      Queries/
+    Configuration/
+      Commands/
+      Queries/
+    Infrastructure/
+      Git/
+
+  ProjectLauncher.Data.EF/
+    EntityConfigurations/
+    Migrations/
+    ApplicationDbContext.cs
+    ApplicationUser.cs
+    DependencyInjection.cs
+    ImportLog.cs
+    ProjectLauncher.Data.EF.csproj
+
+  ProjectLauncher.UI.Avalonia/
+    Assets/
+    ViewModels/
+    Views/
+    App.axaml
+    App.axaml.cs
+    Program.cs
+    ViewLocator.cs
+    ProjectLauncher.UI.Avalonia.csproj
+```
+
+`ProjectLaunch.Core.Domain` defines the persistence-facing domain entities and relationships. Domain types contain state but do not validate input, access the filesystem, run Git, or depend on EF Core or Avalonia.
+
+`ProjectLauncher.Core` is the application/API boundary. It owns validation, use-case orchestration, service interfaces, and CQRS-lite commands and queries. Commands and queries are grouped by the domain entity they modify or read. For example, `SetProjectNameCommand` belongs under `Projects/Commands`, while `GetProjectStreakQuery` belongs under `Streaks/Queries`.
+
+`ProjectLauncher.Data.EF` contains EF Core persistence only: entity configurations, migrations, `ApplicationDbContext`, dependency-injection registration, and persistence support records. `ApplicationUser` represents at most one local profile in V1; it must not introduce authentication or cloud accounts. `ImportLog` is reserved for a future import workflow and should remain unused until that feature is promoted from V1.1.
+
+`ProjectLauncher.UI.Avalonia` contains every UI-facing file, including Avalonia views, view models, assets, application builder/startup files, converters, controls, and platform-specific UI services. The UI calls the Core command/query boundary rather than accessing EF Core entities or `ApplicationDbContext` directly.
 
 ### Architecture rules
 
-- Domain folders own their commands, queries, models, and UI behavior
-- Git process execution belongs in Infrastructure
+- Validation occurs in `ProjectLauncher.Core` command/query handlers, not in domain entities or Avalonia views
+- Commands and queries are separated by the domain entity they modify or query
+- Git process execution belongs in `ProjectLauncher.Core/Infrastructure/Git`
+- EF Core configuration and migrations belong only in `ProjectLauncher.Data.EF`
+- All Avalonia and UI-facing files belong in `ProjectLauncher.UI.Avalonia`
+- Dependencies point inward: UI and Data.EF may depend on Core/Domain; Domain depends on neither
 - Streak calculation remains deterministic and independent from Avalonia
 - ViewModels coordinate use cases but do not contain Git parsing or database access
 - CQRS-lite means separate command/query classes where useful, not a mediator requirement
@@ -630,7 +714,7 @@ Build these only after the V1 success criteria are met:
 
 ### Folder is not accessible
 
-Show a clear validation message and do not create the project.
+The API/application layer validates folder accessibility before executing the add-project command. Show a clear validation message and do not create the project.
 
 ### Git is not installed
 
