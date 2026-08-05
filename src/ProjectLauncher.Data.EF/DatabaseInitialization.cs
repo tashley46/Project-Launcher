@@ -9,9 +9,8 @@ public static class DatabaseInitialization
     {
         Directory.CreateDirectory(ProjectLauncherDatabase.GetDataDirectory());
 
-        using var scope = services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var factory = services.GetRequiredService<IDbContextFactory<ApplicationDbContext>>();
+        using var dbContext = factory.CreateDbContext();
         dbContext.Database.Migrate();
     }
 }
-

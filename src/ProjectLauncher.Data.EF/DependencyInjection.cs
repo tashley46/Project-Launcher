@@ -12,7 +12,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         string connectionString)
     {
-        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlite(connectionString));
         return services;
     }
 }

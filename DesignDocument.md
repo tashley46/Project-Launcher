@@ -627,6 +627,22 @@ src/
 
 `ProjectLaunch.Core.Domain` defines the persistence-facing domain entities and relationships. Domain types contain state but do not validate input, access the filesystem, run Git, or depend on EF Core or Avalonia.
 
+Every domain entity file follows this layout:
+
+```text
+using directives
+namespace
+enumerations required by the domain
+domain DTO
+domain entity class : EntityBase
+static Create(DomainDto dto)
+Update(DomainDto dto)
+other domain behavior
+supporting value objects, when required
+```
+
+In C# files, dependency imports use `using`; `@using` is reserved for Razor syntax. DTOs carry unvalidated state into domain creation and update methods. `Create` and `Update` copy state and establish relationships but do not validate, normalize, access external systems, or make persistence decisions. Validation belongs to the corresponding command/query boundary in `ProjectLauncher.Core`.
+
 `ProjectLauncher.Core` is the application/API boundary. It owns validation, use-case orchestration, service interfaces, and CQRS-lite commands and queries. Commands and queries are grouped by the domain entity they modify or read. For example, `SetProjectNameCommand` belongs under `Projects/Commands`, while `GetProjectStreakQuery` belongs under `Streaks/Queries`.
 
 `ProjectLauncher.Data.EF` contains EF Core persistence only: entity configurations, migrations, `ApplicationDbContext`, dependency-injection registration, and persistence support records. `ApplicationUser` represents at most one local profile in V1; it must not introduce authentication or cloud accounts. `ImportLog` is reserved for a future import workflow and should remain unused until that feature is promoted from V1.1.
@@ -636,9 +652,12 @@ src/
 ### Architecture rules
 
 - Validation occurs in `ProjectLauncher.Core` command/query handlers, not in domain entities or Avalonia views
+- Every domain entity derives from `EntityBase` and follows the documented file ordering
+- Every domain entity exposes DTO-driven `Create` and `Update` functions without domain-layer validation
 - Commands and queries are separated by the domain entity they modify or query
 - Git process execution belongs in `ProjectLauncher.Core/Infrastructure/Git`
 - EF Core configuration and migrations belong only in `ProjectLauncher.Data.EF`
+- Application code obtains contexts from `IDbContextFactory<ApplicationDbContext>` and disposes each context after one command, query, or startup operation; no ViewModel or singleton retains a DbContext
 - All Avalonia and UI-facing files belong in `ProjectLauncher.UI.Avalonia`
 - Dependencies point inward: UI and Data.EF may depend on Core/Domain; Domain depends on neither
 - Streak calculation remains deterministic and independent from Avalonia
