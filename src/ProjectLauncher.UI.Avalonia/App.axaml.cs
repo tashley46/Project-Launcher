@@ -4,6 +4,8 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
+using ProjectLauncher.Core.GitHubRepositories.Queries;
+using ProjectLauncher.Core.Streaks.Queries;
 using ProjectLauncher.Data.EF;
 using ProjectLauncher.ViewModels;
 using ProjectLauncher.Views;
@@ -42,6 +44,8 @@ public partial class App : Application
         services.AddTransient<AddProjectCommandHandler>();
         services.AddTransient<GetProjectQueryHandler>();
         services.AddTransient<GetProjectsQueryHandler>();
+        services.AddTransient<GetGitHubRepositoryQueryHandler>();
+        services.AddTransient<GetProjectStreakQueryHandler>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<MainWindow>(provider => new MainWindow
         {

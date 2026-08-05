@@ -1,13 +1,18 @@
 using System.Collections.ObjectModel;
+using ProjectLauncher.Core.GitHubRepositories.Queries;
+using ProjectLauncher.Core.Projects;
 using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
+using ProjectLauncher.Core.Streaks.Queries;
 
 namespace ProjectLauncher.ViewModels;
 
 public sealed class MainViewModel(
     AddProjectCommandHandler addProjectHandler,
     GetProjectQueryHandler getProjectHandler,
-    GetProjectsQueryHandler getProjectsHandler) : ViewModelBase
+    GetProjectsQueryHandler getProjectsHandler,
+    GetGitHubRepositoryQueryHandler getGitHubRepositoryHandler,
+    GetProjectStreakQueryHandler getProjectStreakHandler) : ViewModelBase
 {
     private bool _isBusy;
     private bool _hasLoaded;
@@ -72,7 +77,7 @@ public sealed class MainViewModel(
             Projects.Clear();
             foreach (var project in result.Value)
             {
-                Projects.Add(ProjectCardViewModel.FromResponse(project));
+                Projects.Add(CreateProjectCard(project));
             }
 
             _hasLoaded = true;
@@ -111,7 +116,7 @@ public sealed class MainViewModel(
                 return;
             }
 
-            Projects.Add(ProjectCardViewModel.FromResponse(getResult.Value));
+            Projects.Add(CreateProjectCard(getResult.Value));
             NotifyDashboardChanged();
         }
         finally
@@ -121,6 +126,46 @@ public sealed class MainViewModel(
     }
 
     public void DismissError() => ErrorMessage = null;
+
+    private ProjectCardViewModel CreateProjectCard(ProjectResponse response) =>
+        ProjectCardViewModel.FromResponse(response, LoadProjectDetailsAsync);
+
+    private async Task LoadProjectDetailsAsync(ProjectCardViewModel card)
+    {
+        IsBusy = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var projectTask = getProjectHandler.HandleAsync(new GetProjectQuery(card.Id));
+            var repositoryTask = getGitHubRepositoryHandler.HandleAsync(
+                new GetGitHubRepositoryQuery(card.Id));
+            var streakTask = getProjectStreakHandler.HandleAsync(
+                new GetProjectStreakQuery(card.Id));
+
+            await Task.WhenAll(projectTask, repositoryTask, streakTask);
+
+            var projectResult = await projectTask;
+            var repositoryResult = await repositoryTask;
+            var streakResult = await streakTask;
+
+            var error = projectResult.Error ?? repositoryResult.Error ?? streakResult.Error;
+            if (error is not null ||
+                projectResult.Value is null ||
+                repositoryResult.Value is null ||
+                streakResult.Value is null)
+            {
+                ErrorMessage = error?.Message ?? "Project details could not be loaded.";
+                return;
+            }
+
+            card.SetDetails(projectResult.Value, repositoryResult.Value, streakResult.Value);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 
     private void NotifyDashboardChanged()
     {

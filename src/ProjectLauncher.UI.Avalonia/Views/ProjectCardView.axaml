@@ -4,9 +4,13 @@
              x:Class="ProjectLauncher.Views.ProjectCardView"
              x:DataType="vm:ProjectCardViewModel">
     <Border Classes="dashboard-card" Margin="0,0,0,12" Padding="22">
-        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto">
             <StackPanel Spacing="5">
                 <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="★"
+                               IsVisible="{Binding IsFavorite}"
+                               Foreground="{DynamicResource AccentBrush}"
+                               FontSize="17" />
                     <TextBlock Text="{Binding Name}"
                                FontSize="20"
                                FontWeight="SemiBold"
@@ -55,9 +59,70 @@
                            VerticalAlignment="Center"
                            FontSize="13"
                            Foreground="{DynamicResource TextSecondaryBrush}" />
-                <Button Grid.Column="1" Classes="secondary-action" Content="View project" />
+                <Button Grid.Column="1"
+                        Classes="secondary-action"
+                        Content="{Binding DetailsButtonLabel}"
+                        Command="{Binding ViewProjectCommand}" />
             </Grid>
+
+            <Border Grid.Row="3"
+                    Grid.ColumnSpan="2"
+                    IsVisible="{Binding IsDetailsVisible}"
+                    Margin="0,20,0,0"
+                    Padding="18"
+                    CornerRadius="14"
+                    Background="{DynamicResource AppBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="18">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Project details" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Description}"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="24">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="GIT ROOT" Classes="metric-label" />
+                            <TextBlock Text="{Binding GitRootPath}" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="CREATED" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding CreatedLabel}" />
+                            <TextBlock Text="LAST OPENED" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding LastOpenedLabel}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="5">
+                            <TextBlock Text="GITHUB" Classes="metric-label" />
+                            <TextBlock Text="{Binding GitHubRepositoryLabel}"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding GitHubUrl}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="REMOTE" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding OriginalRemoteUrl}"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Spacing="5">
+                            <TextBlock Text="STREAK" Classes="metric-label" />
+                            <TextBlock Text="{Binding StreakLabel}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="{Binding LongestStreakLabel, StringFormat='Longest: {0}'}" />
+                            <TextBlock Text="{Binding ActiveDaysLabel}" />
+                            <TextBlock Text="LAST MATCHING COMMIT" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding LastCommitLabel}" />
+                            <TextBlock Text="{Binding CalculatedLabel, StringFormat='Calculated: {0}'}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </Grid>
     </Border>
 </UserControl>
-
