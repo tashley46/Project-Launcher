@@ -25,6 +25,7 @@ public sealed record GitRepositorySnapshot(
     string? GitHubUrl,
     string? GitHubOwner,
     string? GitHubRepositoryName,
+    string? DefaultBranch,
     string? LastCommitHash,
     string? LastCommitSummary,
     DateTimeOffset? LastCommitAt,
@@ -33,12 +34,12 @@ public sealed record GitRepositorySnapshot(
 {
     public static GitRepositorySnapshot NotGit(int projectId, DateTimeOffset refreshedAt) =>
         new(projectId, false, null, null, false, false, 0, 0, 0, [], null,
-            null, null, null, null, null, null, refreshedAt, null);
+            null, null, null, null, null, null, null, refreshedAt, null);
 
     public static GitRepositorySnapshot Unavailable(
         int projectId,
         DateTimeOffset refreshedAt,
         string error) =>
         new(projectId, false, null, null, false, false, 0, 0, 0, [], null,
-            null, null, null, null, null, null, refreshedAt, error);
+            null, null, null, null, null, null, null, refreshedAt, error);
 }

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using ProjectLauncher.Core.GitHubRepositories.Queries;
+using ProjectLauncher.Core.GitHubRepositories.Commands;
 using ProjectLauncher.Core.Projects;
 using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
@@ -18,6 +19,7 @@ public sealed class MainViewModel(
     GetProjectsQueryHandler getProjectsHandler,
     GetArchivedProjectsQueryHandler getArchivedProjectsHandler,
     GetProjectGitStatusQueryHandler getProjectGitStatusHandler,
+    ConnectGitHubRepositoryCommandHandler connectGitHubRepositoryHandler,
     GetGitHubRepositoryQueryHandler getGitHubRepositoryHandler,
     GetProjectStreakQueryHandler getProjectStreakHandler) : ViewModelBase
 {
@@ -163,7 +165,27 @@ public sealed class MainViewModel(
             new GetProjectGitStatusQuery(card.Id, card.FolderPath),
             cancellationToken);
         if (result.IsSuccess && result.Value is not null)
+        {
             card.SetGitSnapshot(result.Value);
+            var snapshot = result.Value;
+            if (snapshot.GitHubUrl is not null && snapshot.GitHubOwner is not null &&
+                snapshot.GitHubRepositoryName is not null)
+            {
+                var connection = await connectGitHubRepositoryHandler.HandleAsync(
+                    new ConnectGitHubRepositoryCommand(
+                        card.Id,
+                        snapshot.GitHubOwner,
+                        snapshot.GitHubRepositoryName,
+                        snapshot.GitHubUrl,
+                        snapshot.PreferredRemoteUrl,
+                        snapshot.DefaultBranch),
+                    cancellationToken);
+                if (connection.IsSuccess && connection.Value is not null)
+                    card.SetGitHubConnection(connection.Value);
+                else
+                    ShowError(connection.Error?.Message);
+            }
+        }
         else
             card.SetGitError(result.Error?.Message ?? "Git status could not be read.");
     }

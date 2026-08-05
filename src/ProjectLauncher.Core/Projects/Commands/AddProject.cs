@@ -87,6 +87,7 @@ public sealed class AddProjectCommandHandler(
                 Name = git.GitHubRepositoryName,
                 WebUrl = git.GitHubUrl,
                 OriginalRemoteUrl = git.PreferredRemoteUrl,
+                DefaultBranch = git.DefaultBranch,
             }, createdDateTime)
             : null;
         var project = Project.Create(

@@ -79,6 +79,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public string LatestCommitSummary { get; private set; } = "No commits yet";
     public string LatestCommitDateLabel { get; private set; } = string.Empty;
     public string RemoteLabel { get; private set; } = "No remote";
+    public string DefaultBranchLabel { get; private set; } = "Unknown";
     public string ArchiveButtonLabel => IsArchived ? "Restore project" : "Archive project";
     public string StreakLabel => CurrentStreakDays == 1 ? "1 day streak" : $"{CurrentStreakDays} day streak";
     public string DetailsButtonLabel => IsDetailsVisible ? "Hide details" : "View project";
@@ -134,12 +135,13 @@ public sealed class ProjectCardViewModel : ViewModelBase
         GitHubRepositoryLabel = repository.IsConnected ? $"{repository.Owner}/{repository.Name}" : "Not connected";
         GitHubUrl = repository.WebUrl;
         OriginalRemoteUrl = repository.OriginalRemoteUrl ?? "No GitHub remote detected";
+        DefaultBranchLabel = repository.DefaultBranch ?? "Unknown";
         LongestStreakLabel = $"{streak.LongestDays} {(streak.LongestDays == 1 ? "day" : "days")}";
         LastCommitLabel = streak.LastCommitByUserAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt") ?? "No matching commits yet";
         ActiveDaysLabel = $"{streak.ActiveCommitDaysLast30} active days in the last 30";
         CalculatedLabel = streak.CalculatedAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt") ?? "Not calculated yet";
 
-        foreach (var property in new[] { nameof(GitRootPath), nameof(CreatedLabel), nameof(ModifiedLabel), nameof(LastOpenedLabel), nameof(RepositoryStatus), nameof(GitHubRepositoryLabel), nameof(GitHubUrl), nameof(OriginalRemoteUrl), nameof(LongestStreakLabel), nameof(LastCommitLabel), nameof(ActiveDaysLabel), nameof(CalculatedLabel) })
+        foreach (var property in new[] { nameof(GitRootPath), nameof(CreatedLabel), nameof(ModifiedLabel), nameof(LastOpenedLabel), nameof(RepositoryStatus), nameof(GitHubRepositoryLabel), nameof(GitHubUrl), nameof(OriginalRemoteUrl), nameof(DefaultBranchLabel), nameof(LongestStreakLabel), nameof(LastCommitLabel), nameof(ActiveDaysLabel), nameof(CalculatedLabel) })
             OnPropertyChanged(property);
 
         _hasLoadedDetails = true;
@@ -180,12 +182,27 @@ public sealed class ProjectCardViewModel : ViewModelBase
                 GitHubUrl = snapshot.GitHubUrl;
                 GitHubRepositoryLabel = $"{snapshot.GitHubOwner}/{snapshot.GitHubRepositoryName}";
                 OriginalRemoteUrl = snapshot.PreferredRemoteUrl ?? "No GitHub remote detected";
+                DefaultBranchLabel = snapshot.DefaultBranch ?? "Unknown";
             }
             GitRootPath = snapshot.RepositoryRoot ?? GitRootPath;
         }
 
-        foreach (var property in new[] { nameof(BranchLabel), nameof(WorkingTreeStatus), nameof(FileChangeSummary), nameof(LatestCommitSummary), nameof(LatestCommitDateLabel), nameof(RemoteLabel), nameof(RepositoryStatus), nameof(GitHubUrl), nameof(GitHubRepositoryLabel), nameof(OriginalRemoteUrl), nameof(GitRootPath) })
+        foreach (var property in new[] { nameof(BranchLabel), nameof(WorkingTreeStatus), nameof(FileChangeSummary), nameof(LatestCommitSummary), nameof(LatestCommitDateLabel), nameof(RemoteLabel), nameof(RepositoryStatus), nameof(GitHubUrl), nameof(GitHubRepositoryLabel), nameof(OriginalRemoteUrl), nameof(DefaultBranchLabel), nameof(GitRootPath) })
             OnPropertyChanged(property);
+    }
+
+    public void SetGitHubConnection(GitHubRepositoryResponse repository)
+    {
+        RepositoryStatus = repository.IsConnected ? "GitHub connected" : "GitHub not connected";
+        GitHubRepositoryLabel = repository.IsConnected ? $"{repository.Owner}/{repository.Name}" : "Not connected";
+        GitHubUrl = repository.WebUrl;
+        OriginalRemoteUrl = repository.OriginalRemoteUrl ?? "No GitHub remote detected";
+        DefaultBranchLabel = repository.DefaultBranch ?? "Unknown";
+        OnPropertyChanged(nameof(RepositoryStatus));
+        OnPropertyChanged(nameof(GitHubRepositoryLabel));
+        OnPropertyChanged(nameof(GitHubUrl));
+        OnPropertyChanged(nameof(OriginalRemoteUrl));
+        OnPropertyChanged(nameof(DefaultBranchLabel));
     }
 
     public void SetGitError(string message)

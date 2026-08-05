@@ -33,6 +33,13 @@ public sealed class GitRepositoryReader(TimeProvider timeProvider) : IGitReposit
             var preferredRemote = remotes.FirstOrDefault(remote => remote.Name == "origin")
                 ?? remotes.FirstOrDefault();
             var github = NormalizeGitHubUrl(preferredRemote?.Url);
+            var defaultBranch = preferredRemote is null
+                ? null
+                : ParseDefaultBranch(
+                    preferredRemote.Name,
+                    await RunGitAsync(folderPath,
+                        ["symbolic-ref", "--short", $"refs/remotes/{preferredRemote.Name}/HEAD"],
+                        cancellationToken));
             var commit = ParseCommit((await commitTask).Output);
 
             return new GitRepositorySnapshot(
@@ -50,6 +57,7 @@ public sealed class GitRepositoryReader(TimeProvider timeProvider) : IGitReposit
                 github.Url,
                 github.Owner,
                 github.Name,
+                defaultBranch,
                 commit.Hash,
                 commit.Summary,
                 commit.Timestamp,
@@ -141,6 +149,16 @@ public sealed class GitRepositoryReader(TimeProvider timeProvider) : IGitReposit
         if (parts.Length != 3) return (null, null, null);
         return (parts[0], DateTimeOffset.TryParse(parts[1], CultureInfo.InvariantCulture,
             DateTimeStyles.RoundtripKind, out var timestamp) ? timestamp : null, parts[2]);
+    }
+
+    private static string? ParseDefaultBranch(string remoteName, GitCommandResult result)
+    {
+        if (result.ExitCode != 0) return null;
+        var value = result.Output.Trim();
+        var prefix = $"{remoteName}/";
+        return value.StartsWith(prefix, StringComparison.Ordinal)
+            ? value[prefix.Length..]
+            : value;
     }
 
     private sealed record GitCommandResult(int ExitCode, string Output, string Error);

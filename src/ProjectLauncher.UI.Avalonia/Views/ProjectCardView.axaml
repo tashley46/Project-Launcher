@@ -151,6 +151,8 @@
                             <TextBlock Text="{Binding GitHubUrl}"
                                        TextWrapping="Wrap"
                                        Foreground="{DynamicResource AccentBrush}" />
+                            <TextBlock Text="DEFAULT BRANCH" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding DefaultBranchLabel}" />
                             <TextBlock Text="REMOTE" Classes="metric-label" Margin="0,8,0,0" />
                             <TextBlock Text="{Binding OriginalRemoteUrl}"
                                        TextWrapping="Wrap"

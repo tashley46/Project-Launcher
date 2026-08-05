@@ -15,6 +15,8 @@ public sealed record GitHubRepositoryDto
     public string WebUrl { get; init; } = string.Empty;
 
     public string? OriginalRemoteUrl { get; init; }
+
+    public string? DefaultBranch { get; init; }
 }
 
 public class GitHubRepository : EntityBase
@@ -30,6 +32,8 @@ public class GitHubRepository : EntityBase
     public string WebUrl { get; set; } = string.Empty;
 
     public string? OriginalRemoteUrl { get; set; }
+
+    public string? DefaultBranch { get; set; }
 
     public static GitHubRepository Create(
         GitHubRepositoryDto dto,
@@ -55,5 +59,6 @@ public class GitHubRepository : EntityBase
         Name = dto.Name;
         WebUrl = dto.WebUrl;
         OriginalRemoteUrl = dto.OriginalRemoteUrl;
+        DefaultBranch = dto.DefaultBranch;
     }
 }

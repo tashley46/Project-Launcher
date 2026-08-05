@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
 using ProjectLauncher.Core.GitHubRepositories.Queries;
+using ProjectLauncher.Core.GitHubRepositories.Commands;
 using ProjectLauncher.Core.Streaks.Queries;
 using ProjectLauncher.Core.Infrastructure.Git;
 using ProjectLauncher.Data.EF;
@@ -52,6 +53,7 @@ public partial class App : Application
         services.AddTransient<ArchiveProjectCommandHandler>();
         services.AddTransient<RestoreProjectCommandHandler>();
         services.AddTransient<GetGitHubRepositoryQueryHandler>();
+        services.AddTransient<ConnectGitHubRepositoryCommandHandler>();
         services.AddTransient<GetProjectStreakQueryHandler>();
         services.AddTransient<GetProjectGitStatusQueryHandler>();
         services.AddTransient<MainViewModel>();
