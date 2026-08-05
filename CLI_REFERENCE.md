@@ -71,44 +71,44 @@ dotnet clean ProjectLauncher.slnx
 
 ## Entity Framework commands
 
-Install the EF Core CLI tool if it is not already available:
+Restore the repository-local EF Core CLI tool:
 
 ```bash
-dotnet tool install --global dotnet-ef
+dotnet tool restore
 ```
 
 Check the installed EF CLI version:
 
 ```bash
-dotnet ef --version
+dotnet tool run dotnet-ef --version
 ```
 
 Create a migration:
 
 ```bash
-dotnet ef migrations add MigrationName \
+dotnet tool run dotnet-ef migrations add MigrationName \
   --project src/ProjectLauncher.Data.EF \
-  --startup-project src/ProjectLauncher.UI.Avalonia \
+  --startup-project src/ProjectLauncher.Data.EF \
   --output-dir Migrations
 ```
 
 Apply migrations to the configured database:
 
 ```bash
-dotnet ef database update \
+dotnet tool run dotnet-ef database update \
   --project src/ProjectLauncher.Data.EF \
-  --startup-project src/ProjectLauncher.UI.Avalonia
+  --startup-project src/ProjectLauncher.Data.EF
 ```
 
 List migrations:
 
 ```bash
-dotnet ef migrations list \
+dotnet tool run dotnet-ef migrations list \
   --project src/ProjectLauncher.Data.EF \
-  --startup-project src/ProjectLauncher.UI.Avalonia
+  --startup-project src/ProjectLauncher.Data.EF
 ```
 
-The application must configure `ApplicationDbContext` at startup before migration commands can create or update a database.
+`ApplicationDbContextFactory` supplies the design-time configuration used by these commands. The installed application applies checked-in migrations automatically during startup.
 
 ## NuGet package commands
 

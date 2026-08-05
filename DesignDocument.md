@@ -606,9 +606,12 @@ src/
     EntityConfigurations/
     Migrations/
     ApplicationDbContext.cs
+    ApplicationDbContextFactory.cs
     ApplicationUser.cs
+    DatabaseInitialization.cs
     DependencyInjection.cs
     ImportLog.cs
+    ProjectLauncherDatabase.cs
     ProjectLauncher.Data.EF.csproj
 
   ProjectLauncher.UI.Avalonia/

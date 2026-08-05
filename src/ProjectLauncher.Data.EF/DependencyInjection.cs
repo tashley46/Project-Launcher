@@ -5,6 +5,9 @@ namespace ProjectLauncher.Data.EF;
 
 public static class DependencyInjection
 {
+    public static IServiceCollection AddProjectLauncherData(this IServiceCollection services) =>
+        services.AddProjectLauncherData(ProjectLauncherDatabase.CreateConnectionString());
+
     public static IServiceCollection AddProjectLauncherData(
         this IServiceCollection services,
         string connectionString)
@@ -13,4 +16,3 @@ public static class DependencyInjection
         return services;
     }
 }
-
