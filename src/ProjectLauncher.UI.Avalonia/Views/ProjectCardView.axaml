@@ -48,6 +48,12 @@
                     <TextBlock Text="{Binding RepositoryStatus}" FontSize="12" />
                 </Border>
                 <Border Classes="neutral-pill">
+                    <TextBlock Text="{Binding BranchLabel}" FontSize="12" />
+                </Border>
+                <Border Classes="neutral-pill">
+                    <TextBlock Text="{Binding WorkingTreeStatus}" FontSize="12" />
+                </Border>
+                <Border Classes="neutral-pill">
                     <TextBlock Text="{Binding StreakLabel}" FontSize="12" />
                 </Border>
             </StackPanel>
@@ -55,10 +61,16 @@
             <Grid Grid.Row="2" Grid.ColumnSpan="2"
                   ColumnDefinitions="*,Auto"
                   Margin="0,20,0,0">
-                <TextBlock Text="Ready to resume when you are."
-                           VerticalAlignment="Center"
-                           FontSize="13"
-                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Text="{Binding LatestCommitSummary}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding LatestCommitDateLabel}"
+                               FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                     <Button Classes="secondary-action"
                             Content="Edit"
@@ -117,6 +129,15 @@
                             <TextBlock Text="GIT ROOT" Classes="metric-label" />
                             <TextBlock Text="{Binding GitRootPath}" TextWrapping="Wrap"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="BRANCH" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding BranchLabel}" />
+                            <TextBlock Text="WORKING TREE" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding WorkingTreeStatus}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding FileChangeSummary}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBlock Text="REMOTES" Classes="metric-label" Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding RemoteLabel}" />
                             <TextBlock Text="CREATED" Classes="metric-label" Margin="0,8,0,0" />
                             <TextBlock Text="{Binding CreatedLabel}" />
                             <TextBlock Text="LAST OPENED" Classes="metric-label" Margin="0,8,0,0" />

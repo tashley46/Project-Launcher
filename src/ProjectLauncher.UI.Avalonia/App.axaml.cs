@@ -6,6 +6,7 @@ using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
 using ProjectLauncher.Core.GitHubRepositories.Queries;
 using ProjectLauncher.Core.Streaks.Queries;
+using ProjectLauncher.Core.Infrastructure.Git;
 using ProjectLauncher.Data.EF;
 using ProjectLauncher.ViewModels;
 using ProjectLauncher.Views;
@@ -41,6 +42,7 @@ public partial class App : Application
 
         services.AddProjectLauncherData();
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IGitRepositoryReader, GitRepositoryReader>();
         services.AddTransient<AddProjectCommandHandler>();
         services.AddTransient<GetProjectQueryHandler>();
         services.AddTransient<GetProjectsQueryHandler>();
@@ -51,6 +53,7 @@ public partial class App : Application
         services.AddTransient<RestoreProjectCommandHandler>();
         services.AddTransient<GetGitHubRepositoryQueryHandler>();
         services.AddTransient<GetProjectStreakQueryHandler>();
+        services.AddTransient<GetProjectGitStatusQueryHandler>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<MainWindow>(provider => new MainWindow
         {

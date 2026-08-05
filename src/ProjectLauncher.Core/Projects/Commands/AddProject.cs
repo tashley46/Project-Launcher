@@ -1,4 +1,5 @@
 using ProjectLaunch.Core.Domain;
+using ProjectLauncher.Core.Infrastructure.Git;
 using ProjectLauncher.Core.Shared;
 using ProjectLauncher.Core.Shared.Errors;
 
@@ -6,7 +7,10 @@ namespace ProjectLauncher.Core.Projects.Commands;
 
 public sealed record AddProjectCommand(string FolderPath) : ICommand<Result<ProjectResponse>>;
 
-public sealed class AddProjectCommandHandler(IProjectStore projectStore, TimeProvider timeProvider)
+public sealed class AddProjectCommandHandler(
+    IProjectStore projectStore,
+    IGitRepositoryReader gitRepositoryReader,
+    TimeProvider timeProvider)
 {
     public async Task<Result<ProjectResponse>> HandleAsync(
         AddProjectCommand command,
@@ -72,12 +76,26 @@ public sealed class AddProjectCommandHandler(IProjectStore projectStore, TimePro
         }
 
         var createdDateTime = timeProvider.GetUtcNow();
+        var git = await gitRepositoryReader.ReadAsync(0, normalizedPath, cancellationToken);
         var streak = ProjectStreak.Create(new ProjectStreakDto(), createdDateTime);
+        var gitHubRepository = git.GitHubUrl is not null &&
+            git.GitHubOwner is not null &&
+            git.GitHubRepositoryName is not null
+            ? GitHubRepository.Create(new GitHubRepositoryDto
+            {
+                Owner = git.GitHubOwner,
+                Name = git.GitHubRepositoryName,
+                WebUrl = git.GitHubUrl,
+                OriginalRemoteUrl = git.PreferredRemoteUrl,
+            }, createdDateTime)
+            : null;
         var project = Project.Create(
             new ProjectDto
             {
                 Name = projectName,
                 Folder = new ProjectFolder(normalizedPath),
+                GitRootPath = git.RepositoryRoot,
+                GitHubRepository = gitHubRepository,
                 Lifecycle = ProjectLifecycle.Active,
                 Streak = streak,
             },

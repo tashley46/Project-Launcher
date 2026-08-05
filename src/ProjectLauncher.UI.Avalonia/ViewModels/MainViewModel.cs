@@ -17,6 +17,7 @@ public sealed class MainViewModel(
     GetProjectIncludingDeletedQueryHandler getProjectIncludingDeletedHandler,
     GetProjectsQueryHandler getProjectsHandler,
     GetArchivedProjectsQueryHandler getArchivedProjectsHandler,
+    GetProjectGitStatusQueryHandler getProjectGitStatusHandler,
     GetGitHubRepositoryQueryHandler getGitHubRepositoryHandler,
     GetProjectStreakQueryHandler getProjectStreakHandler) : ViewModelBase
 {
@@ -59,6 +60,7 @@ public sealed class MainViewModel(
         var result = await RunBusyAsync(() => getProjectsHandler.HandleAsync(new GetProjectsQuery(), cancellationToken));
         if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
         ReplaceProjects(result.Value);
+        await RefreshGitStatusesAsync(cancellationToken);
     }
 
     public async Task ShowArchivedProjectsAsync(CancellationToken cancellationToken = default)
@@ -74,7 +76,13 @@ public sealed class MainViewModel(
         var result = await RunBusyAsync(() => addProjectHandler.HandleAsync(new AddProjectCommand(folderPath), cancellationToken));
         if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
         if (IsArchiveView) await ShowProjectsAsync(cancellationToken);
-        else { Projects.Add(CreateProjectCard(result.Value)); NotifyDashboardChanged(); }
+        else
+        {
+            var card = CreateProjectCard(result.Value);
+            Projects.Add(card);
+            NotifyDashboardChanged();
+            await RefreshGitStatusAsync(card, cancellationToken);
+        }
     }
 
     public void DismissError() => ErrorMessage = null;
@@ -137,6 +145,27 @@ public sealed class MainViewModel(
         Projects.Clear();
         foreach (var project in projects) Projects.Add(CreateProjectCard(project));
         NotifyDashboardChanged();
+    }
+
+    private async Task RefreshGitStatusesAsync(CancellationToken cancellationToken)
+    {
+        foreach (var card in Projects)
+        {
+            await RefreshGitStatusAsync(card, cancellationToken);
+        }
+    }
+
+    private async Task RefreshGitStatusAsync(
+        ProjectCardViewModel card,
+        CancellationToken cancellationToken)
+    {
+        var result = await getProjectGitStatusHandler.HandleAsync(
+            new GetProjectGitStatusQuery(card.Id, card.FolderPath),
+            cancellationToken);
+        if (result.IsSuccess && result.Value is not null)
+            card.SetGitSnapshot(result.Value);
+        else
+            card.SetGitError(result.Error?.Message ?? "Git status could not be read.");
     }
 
     private void ShowError(string? message) => ErrorMessage = message ?? "The project operation could not be completed.";

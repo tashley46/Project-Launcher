@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using ProjectLauncher.Core.GitHubRepositories;
+using ProjectLauncher.Core.Infrastructure.Git;
 using ProjectLauncher.Core.Projects;
 using ProjectLauncher.Core.Streaks;
 
@@ -13,6 +14,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
     private bool _isDetailsVisible;
     private bool _isEditing;
     private bool _hasLoadedDetails;
+    private GitRepositorySnapshot? _gitSnapshot;
     private string _name;
     private string _lifecycle;
 
@@ -71,6 +73,12 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public string LastCommitLabel { get; private set; } = "No matching commits yet";
     public string ActiveDaysLabel { get; private set; } = "0 active days in the last 30";
     public string CalculatedLabel { get; private set; } = "Not calculated yet";
+    public string BranchLabel { get; private set; } = "Checking Git…";
+    public string WorkingTreeStatus { get; private set; } = "Status pending";
+    public string FileChangeSummary { get; private set; } = string.Empty;
+    public string LatestCommitSummary { get; private set; } = "No commits yet";
+    public string LatestCommitDateLabel { get; private set; } = string.Empty;
+    public string RemoteLabel { get; private set; } = "No remote";
     public string ArchiveButtonLabel => IsArchived ? "Restore project" : "Archive project";
     public string StreakLabel => CurrentStreakDays == 1 ? "1 day streak" : $"{CurrentStreakDays} day streak";
     public string DetailsButtonLabel => IsDetailsVisible ? "Hide details" : "View project";
@@ -136,6 +144,58 @@ public sealed class ProjectCardViewModel : ViewModelBase
 
         _hasLoadedDetails = true;
         IsDetailsVisible = true;
+        if (_gitSnapshot is not null) SetGitSnapshot(_gitSnapshot);
+    }
+
+    public void SetGitSnapshot(GitRepositorySnapshot snapshot)
+    {
+        _gitSnapshot = snapshot;
+        if (snapshot.Error is not null)
+        {
+            BranchLabel = "Git unavailable";
+            WorkingTreeStatus = "Unavailable";
+            LatestCommitSummary = snapshot.Error;
+        }
+        else if (!snapshot.IsGitRepository)
+        {
+            BranchLabel = "Not a Git repository";
+            WorkingTreeStatus = "Not Git";
+            LatestCommitSummary = "Git details are not available for this folder.";
+        }
+        else
+        {
+            BranchLabel = snapshot.IsDetached ? "Detached HEAD" : snapshot.CurrentBranch ?? "Unknown branch";
+            WorkingTreeStatus = snapshot.IsDirty ? "Dirty" : "Clean";
+            FileChangeSummary = snapshot.IsDirty
+                ? $"{snapshot.StagedFileCount} staged · {snapshot.ModifiedFileCount} modified · {snapshot.UntrackedFileCount} untracked"
+                : "No local changes";
+            LatestCommitSummary = snapshot.LastCommitSummary ?? "No commits yet";
+            LatestCommitDateLabel = snapshot.LastCommitAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt") ?? string.Empty;
+            RemoteLabel = snapshot.Remotes.Count == 0
+                ? "No remote"
+                : string.Join(" · ", snapshot.Remotes.Select(remote => remote.Name));
+            if (snapshot.GitHubUrl is not null)
+            {
+                RepositoryStatus = "GitHub connected";
+                GitHubUrl = snapshot.GitHubUrl;
+                GitHubRepositoryLabel = $"{snapshot.GitHubOwner}/{snapshot.GitHubRepositoryName}";
+                OriginalRemoteUrl = snapshot.PreferredRemoteUrl ?? "No GitHub remote detected";
+            }
+            GitRootPath = snapshot.RepositoryRoot ?? GitRootPath;
+        }
+
+        foreach (var property in new[] { nameof(BranchLabel), nameof(WorkingTreeStatus), nameof(FileChangeSummary), nameof(LatestCommitSummary), nameof(LatestCommitDateLabel), nameof(RemoteLabel), nameof(RepositoryStatus), nameof(GitHubUrl), nameof(GitHubRepositoryLabel), nameof(OriginalRemoteUrl), nameof(GitRootPath) })
+            OnPropertyChanged(property);
+    }
+
+    public void SetGitError(string message)
+    {
+        BranchLabel = "Git unavailable";
+        WorkingTreeStatus = "Unavailable";
+        LatestCommitSummary = message;
+        OnPropertyChanged(nameof(BranchLabel));
+        OnPropertyChanged(nameof(WorkingTreeStatus));
+        OnPropertyChanged(nameof(LatestCommitSummary));
     }
 
     private void BeginEdit()
