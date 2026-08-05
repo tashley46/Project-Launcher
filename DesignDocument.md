@@ -541,69 +541,18 @@ The snapshot is derived from Git and should not be treated as permanent domain t
 
 ## 13. Architecture
 
-Use a single application project or a very small solution split. Do not create a large Clean Architecture hierarchy for this scope.
+Use a CQRS-lite architecure allowing for a clear and easy seperation of layers within a slice, but not over complicating a simple project. Seperate layer into 3 sections: UI, API, and Domain.
 
-Suggested structure:
+Domain should define each entity within the project database. For example a project.
+Each project should have attributes defining important data like name, folder, IsGitRepository, etc.
 
-```text
-ProjectLauncher/
-  Features/
-    Projects/
-      Project.cs
-      ProjectCardViewModel.cs
-      ProjectsPage.axaml
-      ProjectsPageViewModel.cs
-      AddProject.cs
-      UpdateProject.cs
-      RemoveProject.cs
-      SetProjectLifecycle.cs
-      ToggleFavorite.cs
-      GetProjects.cs
+The API layer should interact with these domains. A query on this level could be something like GetProjectStreakQuery(ProjectId) that returns an integer. A command on this level could be something like SetProjectName(ProjectId, NewName) that sets the project name.
 
-    ProjectActions/
-      ProjectAction.cs
-      AddProjectAction.cs
-      UpdateProjectAction.cs
-      CompleteProjectAction.cs
-      DeleteProjectAction.cs
-      ReorderProjectAction.cs
-      GetProjectActions.cs
-
-    Streaks/
-      CommitActivity.cs
-      CommitStreakCalculator.cs
-      GetProjectStreak.cs
-      GetOverallStreak.cs
-
-    Configuration/
-      AppConfiguration.cs
-      ConfigurationViewModel.cs
-      GetConfiguration.cs
-      UpdateConfiguration.cs
-      ManageGitIdentities.cs
-
-  Infrastructure/
-    Persistence/
-      AppDbContext.cs
-      Migrations/
-
-    Git/
-      GitProcessRunner.cs
-      GitRepositoryInspector.cs
-      GitOutputParser.cs
-      GitHubRemoteNormalizer.cs
-
-    Launching/
-      WorkspaceLauncher.cs
-
-  Shared/
-    Result.cs
-    ObservableObject.cs
-```
+The UI layer should allow the user to ineract with the domain/database throuhg the API layer in an intuitive GUI format
 
 ### Architecture rules
 
-- Feature folders own their commands, queries, models, and UI behavior
+- Domain folders own their commands, queries, models, and UI behavior
 - Git process execution belongs in Infrastructure
 - Streak calculation remains deterministic and independent from Avalonia
 - ViewModels coordinate use cases but do not contain Git parsing or database access
