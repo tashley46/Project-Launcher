@@ -15,5 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ProjectLaunch.Core.Domain\ProjectLaunch.Core.Domain.csproj" />
+    <ProjectReference Include="..\ProjectLauncher.Core\ProjectLauncher.Core.csproj" />
   </ItemGroup>
 </Project>

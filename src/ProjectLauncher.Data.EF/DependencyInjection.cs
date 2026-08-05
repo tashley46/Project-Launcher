@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using ProjectLauncher.Core.Projects;
+using ProjectLauncher.Data.EF.Projects;
 
 namespace ProjectLauncher.Data.EF;
 
@@ -13,6 +15,7 @@ public static class DependencyInjection
         string connectionString)
     {
         services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlite(connectionString));
+        services.AddTransient<IProjectStore, ProjectStore>();
         return services;
     }
 }

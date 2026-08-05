@@ -1,15 +1,111 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="ProjectLauncher.App"
              xmlns:local="using:ProjectLauncher"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-
+             x:Class="ProjectLauncher.App"
+             RequestedThemeVariant="Light">
     <Application.DataTemplates>
         <local:ViewLocator />
     </Application.DataTemplates>
 
+    <Application.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#723CEB" />
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#6330D7" />
+        <SolidColorBrush x:Key="AccentSoftBrush" Color="#F0EAFE" />
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F5F5F8" />
+        <SolidColorBrush x:Key="SidebarBrush" Color="#FBFBFC" />
+        <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#E7E7EC" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#1F1F21" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6F6F76" />
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#9A9AA1" />
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
+
+        <Style Selector="Border.dashboard-card">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+        </Style>
+
+        <Style Selector="Border.metric-card">
+            <Setter Property="Background" Value="{DynamicResource CardBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="MinHeight" Value="142" />
+        </Style>
+
+        <Style Selector="Border.metric-card.accent-metric">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        </Style>
+
+        <Style Selector="TextBlock.metric-label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="TextBlock.metric-value">
+            <Setter Property="FontSize" Value="32" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        </Style>
+        <Style Selector="TextBlock.metric-caption">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+        </Style>
+        <Style Selector="TextBlock.inverted">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style Selector="Button.primary-action">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="18,11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.primary-action:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+        </Style>
+
+        <Style Selector="Button.secondary-action">
+            <Setter Property="Background" Value="#F3F3F5" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="14,8" />
+        </Style>
+
+        <Style Selector="Button.nav-item">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="12,10" />
+        </Style>
+        <Style Selector="Button.nav-item.selected">
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Border.status-pill">
+            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="9,4" />
+        </Style>
+        <Style Selector="Border.neutral-pill">
+            <Setter Property="Background" Value="#F3F3F5" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="10,5" />
+        </Style>
+        <Style Selector="Border.sidebar-tip">
+            <Setter Property="Background" Value="#F3F3F5" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
     </Application.Styles>
 </Application>
