@@ -463,6 +463,9 @@ Git-derived state may remain in memory rather than being stored as canonical dat
 
 ```text
 Id
+IsDeleted
+CreatedDateTime
+ModifiedDateTime
 Name
 Description?
 Folder (ProjectFolder value object)
@@ -472,8 +475,6 @@ Streak
 Lifecycle
 IsFavorite
 LastOpenedAt?
-CreatedAt
-UpdatedAt
 ```
 
 `Project` references an optional `GitHubRepository` entity and a required `ProjectStreak` entity. The project domain does not validate incoming values; validation occurs at the API/application boundary before a command changes persisted state.
@@ -482,6 +483,9 @@ UpdatedAt
 
 ```text
 Id
+IsDeleted
+CreatedDateTime
+ModifiedDateTime
 ProjectId
 Owner
 Name
@@ -495,6 +499,9 @@ OriginalRemoteUrl?
 
 ```text
 Id
+IsDeleted
+CreatedDateTime
+ModifiedDateTime
 ProjectId
 CurrentDays
 LongestDays
@@ -635,13 +642,26 @@ namespace
 enumerations required by the domain
 domain DTO
 domain entity class : EntityBase
-static Create(DomainDto dto)
-Update(DomainDto dto)
+static Create(DomainDto dto, DateTimeOffset createdDateTime)
+Update(DomainDto dto, DateTimeOffset modifiedDateTime)
 other domain behavior
 supporting value objects, when required
 ```
 
-In C# files, dependency imports use `using`; `@using` is reserved for Razor syntax. DTOs carry unvalidated state into domain creation and update methods. `Create` and `Update` copy state and establish relationships but do not validate, normalize, access external systems, or make persistence decisions. Validation belongs to the corresponding command/query boundary in `ProjectLauncher.Core`.
+Every domain entity derives from `EntityBase`, which owns these shared persisted attributes:
+
+```text
+Id
+IsDeleted
+CreatedDateTime
+ModifiedDateTime
+```
+
+`EntityBase` provides `Delete`, `Restore`, `SetCreatedDateTime`, and `SetModifiedDateTime`. Delete and restore implement soft-delete state by setting `IsDeleted`; they do not physically remove database rows. These methods assign state without domain validation. Core command handlers decide when they may be called and supply the timestamps.
+
+In C# files, dependency imports use `using`; `@using` is reserved for Razor syntax. DTOs carry only unvalidated domain-specific state into creation and update methods. Attributes inherited from `EntityBase` are not repeated in domain DTOs or declared again in domain entity classes.
+
+Every `Create` method accepts a creation timestamp supplied by Core and calls `SetCreatedDateTime`. Every `Update` method accepts a modification timestamp supplied by Core and calls `SetModifiedDateTime`. Domain methods do not read the system clock directly. `Create` and `Update` copy domain-specific state and establish relationships but do not validate, normalize, access external systems, or make persistence decisions. Validation and time acquisition belong to the corresponding command/query boundary in `ProjectLauncher.Core`.
 
 `ProjectLauncher.Core` is the application/API boundary. It owns validation, use-case orchestration, service interfaces, and CQRS-lite commands and queries. Commands and queries are grouped by the domain entity they modify or read. For example, `SetProjectNameCommand` belongs under `Projects/Commands`, while `GetProjectStreakQuery` belongs under `Streaks/Queries`.
 
@@ -654,6 +674,8 @@ In C# files, dependency imports use `using`; `@using` is reserved for Razor synt
 - Validation occurs in `ProjectLauncher.Core` command/query handlers, not in domain entities or Avalonia views
 - Every domain entity derives from `EntityBase` and follows the documented file ordering
 - Every domain entity exposes DTO-driven `Create` and `Update` functions without domain-layer validation
+- Shared `EntityBase` attributes are inherited only and are not repeated in domain DTOs or domain entity declarations
+- `Create` calls `SetCreatedDateTime`; `Update` calls `SetModifiedDateTime`, using timestamps supplied by Core
 - Commands and queries are separated by the domain entity they modify or query
 - Git process execution belongs in `ProjectLauncher.Core/Infrastructure/Git`
 - EF Core configuration and migrations belong only in `ProjectLauncher.Data.EF`

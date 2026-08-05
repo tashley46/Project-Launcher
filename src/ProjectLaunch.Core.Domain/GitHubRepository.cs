@@ -1,9 +1,9 @@
+using System;
+
 namespace ProjectLaunch.Core.Domain;
 
 public sealed record GitHubRepositoryDto
 {
-    public int Id { get; init; }
-
     public int ProjectId { get; init; }
 
     public Project Project { get; init; } = null!;
@@ -19,7 +19,6 @@ public sealed record GitHubRepositoryDto
 
 public class GitHubRepository : EntityBase
 {
-
     public int ProjectId { get; set; }
 
     public Project Project { get; set; } = null!;
@@ -32,16 +31,24 @@ public class GitHubRepository : EntityBase
 
     public string? OriginalRemoteUrl { get; set; }
 
-    public static GitHubRepository Create(GitHubRepositoryDto dto)
+    public static GitHubRepository Create(
+        GitHubRepositoryDto dto,
+        DateTimeOffset createdDateTime)
     {
         var repository = new GitHubRepository();
-        repository.Update(dto);
+        repository.Apply(dto);
+        repository.SetCreatedDateTime(createdDateTime);
         return repository;
     }
 
-    public void Update(GitHubRepositoryDto dto)
+    public void Update(GitHubRepositoryDto dto, DateTimeOffset modifiedDateTime)
     {
-        Id = dto.Id;
+        Apply(dto);
+        SetModifiedDateTime(modifiedDateTime);
+    }
+
+    private void Apply(GitHubRepositoryDto dto)
+    {
         ProjectId = dto.ProjectId;
         Project = dto.Project;
         Owner = dto.Owner;

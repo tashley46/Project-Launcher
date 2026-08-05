@@ -11,8 +11,6 @@ public enum ProjectLifecycle
 
 public sealed record ProjectDto
 {
-    public int Id { get; init; }
-
     public string Name { get; init; } = string.Empty;
 
     public string? Description { get; init; }
@@ -31,9 +29,6 @@ public sealed record ProjectDto
 
     public DateTimeOffset? LastOpenedAt { get; init; }
 
-    public DateTimeOffset CreatedAt { get; init; }
-
-    public DateTimeOffset UpdatedAt { get; init; }
 }
 
 public class Project : EntityBase
@@ -56,20 +51,22 @@ public class Project : EntityBase
 
     public DateTimeOffset? LastOpenedAt { get; set; }
 
-    public DateTimeOffset CreatedAt { get; set; }
-
-    public DateTimeOffset UpdatedAt { get; set; }
-
-    public static Project Create(ProjectDto dto)
+    public static Project Create(ProjectDto dto, DateTimeOffset createdDateTime)
     {
         var project = new Project();
-        project.Update(dto);
+        project.Apply(dto);
+        project.SetCreatedDateTime(createdDateTime);
         return project;
     }
 
-    public void Update(ProjectDto dto)
+    public void Update(ProjectDto dto, DateTimeOffset modifiedDateTime)
     {
-        Id = dto.Id;
+        Apply(dto);
+        SetModifiedDateTime(modifiedDateTime);
+    }
+
+    private void Apply(ProjectDto dto)
+    {
         Name = dto.Name;
         Description = dto.Description;
         Folder = dto.Folder;
@@ -79,9 +76,6 @@ public class Project : EntityBase
         Lifecycle = dto.Lifecycle;
         IsFavorite = dto.IsFavorite;
         LastOpenedAt = dto.LastOpenedAt;
-        CreatedAt = dto.CreatedAt;
-        UpdatedAt = dto.UpdatedAt;
-
         if (GitHubRepository is not null)
         {
             GitHubRepository.Project = this;

@@ -4,8 +4,6 @@ namespace ProjectLaunch.Core.Domain;
 
 public sealed record ProjectStreakDto
 {
-    public int Id { get; init; }
-
     public int ProjectId { get; init; }
 
     public Project Project { get; init; } = null!;
@@ -23,7 +21,6 @@ public sealed record ProjectStreakDto
 
 public class ProjectStreak : EntityBase
 {
-
     public int ProjectId { get; set; }
 
     public Project Project { get; set; } = null!;
@@ -38,16 +35,22 @@ public class ProjectStreak : EntityBase
 
     public DateTimeOffset? CalculatedAt { get; set; }
 
-    public static ProjectStreak Create(ProjectStreakDto dto)
+    public static ProjectStreak Create(ProjectStreakDto dto, DateTimeOffset createdDateTime)
     {
         var streak = new ProjectStreak();
-        streak.Update(dto);
+        streak.Apply(dto);
+        streak.SetCreatedDateTime(createdDateTime);
         return streak;
     }
 
-    public void Update(ProjectStreakDto dto)
+    public void Update(ProjectStreakDto dto, DateTimeOffset modifiedDateTime)
     {
-        Id = dto.Id;
+        Apply(dto);
+        SetModifiedDateTime(modifiedDateTime);
+    }
+
+    private void Apply(ProjectStreakDto dto)
+    {
         ProjectId = dto.ProjectId;
         Project = dto.Project;
         CurrentDays = dto.CurrentDays;
