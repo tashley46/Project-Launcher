@@ -2,6 +2,8 @@
 
 Project Launcher is a local-first desktop dashboard for organizing development projects, inspecting local Git state, linking GitHub repositories, and tracking commit streaks.
 
+Repository: [github.com/tashley46/Project-Launcher](https://github.com/tashley46/Project-Launcher)
+
 ## Quick installation
 
 The installers download the latest self-contained release. You do not need .NET or administrator access.
@@ -11,7 +13,7 @@ The installers download the latest self-contained release. You do not need .NET 
 Open a terminal and run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tashley46/Project-Launcher/main/scripts/install-linux.sh | bash
+curl -fsSL https://github.com/tashley46/Project-Launcher/raw/refs/heads/main/scripts/install-linux.sh | bash
 ```
 
 Then open **Project Launcher** from the application menu or run:
@@ -25,12 +27,14 @@ project-launcher
 Open PowerShell and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/tashley46/Project-Launcher/main/scripts/install-windows.ps1 | iex
+irm https://github.com/tashley46/Project-Launcher/raw/refs/heads/main/scripts/install-windows.ps1 | iex
 ```
 
 Then open **Project Launcher** from the Start menu.
 
 > The scripts must come from a branch you trust. You can download and inspect them before running them if preferred. Windows may show a SmartScreen warning while development releases remain unsigned.
+
+These commands become available after the installer scripts are pushed to `main` and the stable-name packages are attached to a GitHub Release.
 
 Git is optional for project organization. Install Git and make it available on `PATH` to enable repository detection, GitHub linking, and streak calculation.
 

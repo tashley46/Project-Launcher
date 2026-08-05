@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-REPOSITORY="tashley46/Project-Launcher"
-DOWNLOAD_URL="${PROJECT_LAUNCHER_DOWNLOAD_URL:-https://github.com/$REPOSITORY/releases/latest/download/ProjectLauncher-linux-x64.tar.gz}"
+REPOSITORY_URL="https://github.com/tashley46/Project-Launcher"
+DOWNLOAD_URL="${PROJECT_LAUNCHER_DOWNLOAD_URL:-$REPOSITORY_URL/releases/latest/download/ProjectLauncher-linux-x64.tar.gz}"
 INSTALL_DIR="${PROJECT_LAUNCHER_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/project-launcher/app}"
 BIN_DIR="${PROJECT_LAUNCHER_BIN_DIR:-$HOME/.local/bin}"
 DESKTOP_DIR="${PROJECT_LAUNCHER_DESKTOP_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/applications}"

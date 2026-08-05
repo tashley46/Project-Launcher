@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$Repository = "tashley46/Project-Launcher"
-$DownloadUrl = "https://github.com/$Repository/releases/latest/download/ProjectLauncher-win-x64.zip"
+$RepositoryUrl = "https://github.com/tashley46/Project-Launcher"
+$DownloadUrl = "$RepositoryUrl/releases/latest/download/ProjectLauncher-win-x64.zip"
 $InstallDirectory = Join-Path $env:LOCALAPPDATA "Programs\ProjectLauncher"
 $TemporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ("ProjectLauncher-" + [guid]::NewGuid())
 $ArchivePath = Join-Path $TemporaryDirectory "ProjectLauncher.zip"
