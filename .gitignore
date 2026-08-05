@@ -10,4 +10,4 @@ TestResults/
 *.db-shm
 *.db-wal
 figma/
-
+artifacts/
