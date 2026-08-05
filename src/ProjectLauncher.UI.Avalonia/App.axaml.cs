@@ -44,6 +44,11 @@ public partial class App : Application
         services.AddTransient<AddProjectCommandHandler>();
         services.AddTransient<GetProjectQueryHandler>();
         services.AddTransient<GetProjectsQueryHandler>();
+        services.AddTransient<GetArchivedProjectsQueryHandler>();
+        services.AddTransient<GetProjectIncludingDeletedQueryHandler>();
+        services.AddTransient<UpdateProjectCommandHandler>();
+        services.AddTransient<ArchiveProjectCommandHandler>();
+        services.AddTransient<RestoreProjectCommandHandler>();
         services.AddTransient<GetGitHubRepositoryQueryHandler>();
         services.AddTransient<GetProjectStreakQueryHandler>();
         services.AddTransient<MainViewModel>();

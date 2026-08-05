@@ -32,6 +32,30 @@ public static class ProjectErrors
         "Project.IdMustBePositive",
         "The project identifier must be greater than zero.");
 
+    public static readonly Error NameRequired = new(
+        "Project.NameRequired",
+        "Enter a project name before saving.");
+
+    public static readonly Error NameTooLong = new(
+        "Project.NameTooLong",
+        "The project name cannot exceed 120 characters.");
+
+    public static readonly Error DescriptionTooLong = new(
+        "Project.DescriptionTooLong",
+        "The project description cannot exceed 1,000 characters.");
+
+    public static readonly Error LifecycleInvalid = new(
+        "Project.LifecycleInvalid",
+        "Choose Active or Paused. Use Archive project to archive it safely.");
+
+    public static Error AlreadyArchived(int projectId) => new(
+        "Project.AlreadyArchived",
+        $"Project {projectId} is already archived.");
+
+    public static Error NotArchived(int projectId) => new(
+        "Project.NotArchived",
+        $"Project {projectId} is not archived.");
+
     public static Error AlreadyExists(string path) => new(
         "Project.AlreadyExists",
         $"A project using '{path}' is already on the dashboard.");

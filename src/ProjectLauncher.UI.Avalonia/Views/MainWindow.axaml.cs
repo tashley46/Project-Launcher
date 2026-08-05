@@ -49,4 +49,20 @@ public partial class MainWindow : Window
             viewModel.DismissError();
         }
     }
+
+    private async void Projects_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            await viewModel.ShowProjectsAsync();
+        }
+    }
+
+    private async void Archived_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            await viewModel.ShowArchivedProjectsAsync();
+        }
+    }
 }

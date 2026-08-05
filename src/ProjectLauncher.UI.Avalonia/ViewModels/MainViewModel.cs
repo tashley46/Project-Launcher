@@ -3,170 +3,149 @@ using ProjectLauncher.Core.GitHubRepositories.Queries;
 using ProjectLauncher.Core.Projects;
 using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
+using ProjectLauncher.Core.Shared;
 using ProjectLauncher.Core.Streaks.Queries;
 
 namespace ProjectLauncher.ViewModels;
 
 public sealed class MainViewModel(
     AddProjectCommandHandler addProjectHandler,
+    UpdateProjectCommandHandler updateProjectHandler,
+    ArchiveProjectCommandHandler archiveProjectHandler,
+    RestoreProjectCommandHandler restoreProjectHandler,
     GetProjectQueryHandler getProjectHandler,
+    GetProjectIncludingDeletedQueryHandler getProjectIncludingDeletedHandler,
     GetProjectsQueryHandler getProjectsHandler,
+    GetArchivedProjectsQueryHandler getArchivedProjectsHandler,
     GetGitHubRepositoryQueryHandler getGitHubRepositoryHandler,
     GetProjectStreakQueryHandler getProjectStreakHandler) : ViewModelBase
 {
     private bool _isBusy;
     private bool _hasLoaded;
+    private bool _isArchiveView;
     private string? _errorMessage;
 
     public ObservableCollection<ProjectCardViewModel> Projects { get; } = [];
-
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set => SetProperty(ref _isBusy, value);
-    }
+    public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
+    public bool IsArchiveView { get => _isArchiveView; private set { if (SetProperty(ref _isArchiveView, value)) NotifyViewChanged(); } }
+    public bool IsProjectView => !IsArchiveView;
+    public string WorkspaceTitle => IsArchiveView ? "Archived projects" : "Your workspace";
+    public string WorkspaceSubtitle => IsArchiveView
+        ? "Restore a project whenever you are ready to return to it."
+        : "Your saved projects are restored each time you launch.";
+    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    public bool HasProjects => Projects.Count > 0;
+    public bool HasNoProjects => !HasProjects;
+    public int ProjectCount => Projects.Count;
+    public int ActiveProjectCount => Projects.Count(project => project.Lifecycle == "Active");
+    public int CurrentStreakDays => Projects.Count == 0 ? 0 : Projects.Max(project => project.CurrentStreakDays);
 
     public string? ErrorMessage
     {
         get => _errorMessage;
-        private set
-        {
-            if (SetProperty(ref _errorMessage, value))
-            {
-                OnPropertyChanged(nameof(HasError));
-            }
-        }
+        private set { if (SetProperty(ref _errorMessage, value)) OnPropertyChanged(nameof(HasError)); }
     }
-
-    public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
-
-    public bool HasProjects => Projects.Count > 0;
-
-    public bool HasNoProjects => !HasProjects;
-
-    public int ProjectCount => Projects.Count;
-
-    public int ActiveProjectCount => Projects.Count(project => project.Lifecycle == "Active");
-
-    public int CurrentStreakDays => Projects.Count == 0
-        ? 0
-        : Projects.Max(project => project.CurrentStreakDays);
 
     public async Task LoadProjectsAsync(CancellationToken cancellationToken = default)
     {
-        if (_hasLoaded)
-        {
-            return;
-        }
+        if (_hasLoaded) return;
+        await ShowProjectsAsync(cancellationToken);
+        _hasLoaded = true;
+    }
 
-        IsBusy = true;
-        ErrorMessage = null;
+    public async Task ShowProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        IsArchiveView = false;
+        var result = await RunBusyAsync(() => getProjectsHandler.HandleAsync(new GetProjectsQuery(), cancellationToken));
+        if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
+        ReplaceProjects(result.Value);
+    }
 
-        try
-        {
-            var result = await getProjectsHandler.HandleAsync(
-                new GetProjectsQuery(),
-                cancellationToken);
-
-            if (!result.IsSuccess || result.Value is null)
-            {
-                ErrorMessage = result.Error?.Message ?? "Saved projects could not be loaded.";
-                return;
-            }
-
-            Projects.Clear();
-            foreach (var project in result.Value)
-            {
-                Projects.Add(CreateProjectCard(project));
-            }
-
-            _hasLoaded = true;
-            NotifyDashboardChanged();
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+    public async Task ShowArchivedProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        IsArchiveView = true;
+        var result = await RunBusyAsync(() => getArchivedProjectsHandler.HandleAsync(new GetArchivedProjectsQuery(), cancellationToken));
+        if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
+        ReplaceProjects(result.Value);
     }
 
     public async Task AddProjectAsync(string folderPath, CancellationToken cancellationToken = default)
     {
-        IsBusy = true;
-        ErrorMessage = null;
-
-        try
-        {
-            var addResult = await addProjectHandler.HandleAsync(
-                new AddProjectCommand(folderPath),
-                cancellationToken);
-
-            if (!addResult.IsSuccess || addResult.Value is null)
-            {
-                ErrorMessage = addResult.Error?.Message ?? "The project could not be added.";
-                return;
-            }
-
-            var getResult = await getProjectHandler.HandleAsync(
-                new GetProjectQuery(addResult.Value.Id),
-                cancellationToken);
-
-            if (!getResult.IsSuccess || getResult.Value is null)
-            {
-                ErrorMessage = getResult.Error?.Message ?? "The saved project could not be loaded.";
-                return;
-            }
-
-            Projects.Add(CreateProjectCard(getResult.Value));
-            NotifyDashboardChanged();
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        var result = await RunBusyAsync(() => addProjectHandler.HandleAsync(new AddProjectCommand(folderPath), cancellationToken));
+        if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
+        if (IsArchiveView) await ShowProjectsAsync(cancellationToken);
+        else { Projects.Add(CreateProjectCard(result.Value)); NotifyDashboardChanged(); }
     }
 
     public void DismissError() => ErrorMessage = null;
 
     private ProjectCardViewModel CreateProjectCard(ProjectResponse response) =>
-        ProjectCardViewModel.FromResponse(response, LoadProjectDetailsAsync);
+        ProjectCardViewModel.FromResponse(response, LoadProjectDetailsAsync, SaveProjectEditAsync, ChangeArchiveStateAsync);
+
+    private async Task SaveProjectEditAsync(ProjectCardViewModel card)
+    {
+        var result = await RunBusyAsync(() => updateProjectHandler.HandleAsync(
+            new UpdateProjectCommand(card.Id, card.EditName, card.EditDescription, card.EditLifecycle)));
+        if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
+        card.ApplyEdit(result.Value);
+        NotifyDashboardChanged();
+    }
+
+    private async Task ChangeArchiveStateAsync(ProjectCardViewModel card)
+    {
+        var result = card.IsArchived
+            ? await RunBusyAsync(() => restoreProjectHandler.HandleAsync(new RestoreProjectCommand(card.Id)))
+            : await RunBusyAsync(() => archiveProjectHandler.HandleAsync(new ArchiveProjectCommand(card.Id)));
+        if (!result.IsSuccess) { ShowError(result.Error?.Message); return; }
+        Projects.Remove(card);
+        NotifyDashboardChanged();
+    }
 
     private async Task LoadProjectDetailsAsync(ProjectCardViewModel card)
     {
         IsBusy = true;
         ErrorMessage = null;
-
         try
         {
-            var projectTask = getProjectHandler.HandleAsync(new GetProjectQuery(card.Id));
-            var repositoryTask = getGitHubRepositoryHandler.HandleAsync(
-                new GetGitHubRepositoryQuery(card.Id));
-            var streakTask = getProjectStreakHandler.HandleAsync(
-                new GetProjectStreakQuery(card.Id));
-
+            var projectTask = card.IsArchived
+                ? getProjectIncludingDeletedHandler.HandleAsync(new GetProjectIncludingDeletedQuery(card.Id))
+                : getProjectHandler.HandleAsync(new GetProjectQuery(card.Id));
+            var repositoryTask = getGitHubRepositoryHandler.HandleAsync(new GetGitHubRepositoryQuery(card.Id));
+            var streakTask = getProjectStreakHandler.HandleAsync(new GetProjectStreakQuery(card.Id));
             await Task.WhenAll(projectTask, repositoryTask, streakTask);
-
-            var projectResult = await projectTask;
-            var repositoryResult = await repositoryTask;
-            var streakResult = await streakTask;
-
-            var error = projectResult.Error ?? repositoryResult.Error ?? streakResult.Error;
-            if (error is not null ||
-                projectResult.Value is null ||
-                repositoryResult.Value is null ||
-                streakResult.Value is null)
-            {
-                ErrorMessage = error?.Message ?? "Project details could not be loaded.";
-                return;
-            }
-
-            card.SetDetails(projectResult.Value, repositoryResult.Value, streakResult.Value);
+            var project = await projectTask;
+            var repository = await repositoryTask;
+            var streak = await streakTask;
+            var error = project.Error ?? repository.Error ?? streak.Error;
+            if (error is not null || project.Value is null || repository.Value is null || streak.Value is null)
+            { ShowError(error?.Message); return; }
+            card.SetDetails(project.Value, repository.Value, streak.Value);
         }
-        finally
-        {
-            IsBusy = false;
-        }
+        finally { IsBusy = false; }
     }
 
+    private async Task<Result<T>> RunBusyAsync<T>(Func<Task<Result<T>>> action)
+    {
+        IsBusy = true;
+        ErrorMessage = null;
+        try { return await action(); }
+        finally { IsBusy = false; }
+    }
+
+    private void ReplaceProjects(IEnumerable<ProjectResponse> projects)
+    {
+        Projects.Clear();
+        foreach (var project in projects) Projects.Add(CreateProjectCard(project));
+        NotifyDashboardChanged();
+    }
+
+    private void ShowError(string? message) => ErrorMessage = message ?? "The project operation could not be completed.";
+    private void NotifyViewChanged()
+    {
+        OnPropertyChanged(nameof(IsProjectView));
+        OnPropertyChanged(nameof(WorkspaceTitle));
+        OnPropertyChanged(nameof(WorkspaceSubtitle));
+    }
     private void NotifyDashboardChanged()
     {
         OnPropertyChanged(nameof(HasProjects));

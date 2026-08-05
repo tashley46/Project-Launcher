@@ -10,5 +10,11 @@ public interface IProjectStore
 
     Task<Project?> GetByIdAsync(int projectId, CancellationToken cancellationToken);
 
+    Task<Project?> GetByIdIncludingDeletedAsync(int projectId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<Project>> GetAllAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Project>> GetArchivedAsync(CancellationToken cancellationToken);
+
+    Task UpdateAsync(Project project, CancellationToken cancellationToken);
 }

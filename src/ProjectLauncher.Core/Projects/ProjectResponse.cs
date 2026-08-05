@@ -4,6 +4,7 @@ namespace ProjectLauncher.Core.Projects;
 
 public sealed record ProjectResponse(
     int Id,
+    bool IsDeleted,
     string Name,
     string FolderPath,
     string? Description,
@@ -18,6 +19,7 @@ public sealed record ProjectResponse(
 {
     public static ProjectResponse FromDomain(Project project) => new(
         project.Id,
+        project.IsDeleted,
         project.Name,
         project.Folder.Path,
         project.Description,

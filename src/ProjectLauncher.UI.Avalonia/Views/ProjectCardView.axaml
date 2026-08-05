@@ -59,10 +59,18 @@
                            VerticalAlignment="Center"
                            FontSize="13"
                            Foreground="{DynamicResource TextSecondaryBrush}" />
-                <Button Grid.Column="1"
-                        Classes="secondary-action"
-                        Content="{Binding DetailsButtonLabel}"
-                        Command="{Binding ViewProjectCommand}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Classes="secondary-action"
+                            Content="Edit"
+                            IsVisible="{Binding IsActiveProject}"
+                            Command="{Binding BeginEditCommand}" />
+                    <Button Classes="secondary-action"
+                            Content="{Binding ArchiveButtonLabel}"
+                            Command="{Binding ChangeArchiveStateCommand}" />
+                    <Button Classes="secondary-action"
+                            Content="{Binding DetailsButtonLabel}"
+                            Command="{Binding ViewProjectCommand}" />
+                </StackPanel>
             </Grid>
 
             <Border Grid.Row="3"
@@ -75,14 +83,36 @@
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1">
                 <StackPanel Spacing="18">
-                    <StackPanel Spacing="5">
+                    <StackPanel Spacing="5" IsVisible="{Binding !IsEditing}">
                         <TextBlock Text="Project details" FontSize="15" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding Description}"
                                    TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextSecondaryBrush}" />
                     </StackPanel>
 
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="24">
+                    <StackPanel Spacing="10" IsVisible="{Binding IsEditing}">
+                        <TextBlock Text="Edit project" FontSize="15" FontWeight="SemiBold" />
+                        <TextBlock Text="NAME" Classes="metric-label" />
+                        <TextBox Text="{Binding EditName}" PlaceholderText="Project name" />
+                        <TextBlock Text="DESCRIPTION" Classes="metric-label" />
+                        <TextBox Text="{Binding EditDescription}"
+                                 PlaceholderText="Optional description"
+                                 AcceptsReturn="True"
+                                 MinHeight="72"
+                                 TextWrapping="Wrap" />
+                        <TextBlock Text="LIFECYCLE" Classes="metric-label" />
+                        <ComboBox ItemsSource="{Binding LifecycleOptions}"
+                                  SelectedItem="{Binding EditLifecycle}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="primary-action" Content="Save changes"
+                                    Command="{Binding SaveEditCommand}" />
+                            <Button Classes="secondary-action" Content="Cancel"
+                                    Command="{Binding CancelEditCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="24"
+                          IsVisible="{Binding !IsEditing}">
                         <StackPanel Spacing="5">
                             <TextBlock Text="GIT ROOT" Classes="metric-label" />
                             <TextBlock Text="{Binding GitRootPath}" TextWrapping="Wrap"

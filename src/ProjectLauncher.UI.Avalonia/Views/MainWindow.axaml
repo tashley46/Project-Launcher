@@ -46,9 +46,11 @@
                                FontSize="10"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource TextMutedBrush}" />
-                    <Button Classes="nav-item selected" Content="Projects" HorizontalContentAlignment="Left" />
+                    <Button Classes="nav-item selected" Content="Projects" HorizontalContentAlignment="Left"
+                            Click="Projects_OnClick" />
                     <Button Classes="nav-item" Content="Favorites" HorizontalContentAlignment="Left" />
-                    <Button Classes="nav-item" Content="Archived" HorizontalContentAlignment="Left" />
+                    <Button Classes="nav-item" Content="Archived" HorizontalContentAlignment="Left"
+                            Click="Archived_OnClick" />
                 </StackPanel>
 
                 <Border Grid.Row="3" Classes="sidebar-tip" Padding="14">
@@ -81,6 +83,7 @@
                         Content="+  Add project"
                         Click="AddProject_OnClick"
                         IsEnabled="{Binding !IsBusy}"
+                        IsVisible="{Binding IsProjectView}"
                         VerticalAlignment="Center" />
             </Grid>
 
@@ -135,11 +138,11 @@
 
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
-                            <TextBlock Text="Your workspace"
+                            <TextBlock Text="{Binding WorkspaceTitle}"
                                        FontSize="20"
                                        FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
-                            <TextBlock Text="Your saved projects are restored each time you launch."
+                            <TextBlock Text="{Binding WorkspaceSubtitle}"
                                        FontSize="13"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
                         </StackPanel>
@@ -160,7 +163,7 @@
                                            FontSize="28"
                                            Foreground="{DynamicResource AccentBrush}" />
                             </Border>
-                            <TextBlock Text="Add your first project"
+                            <TextBlock Text="No projects here yet"
                                        HorizontalAlignment="Center"
                                        FontSize="19"
                                        FontWeight="SemiBold"
@@ -174,6 +177,7 @@
                                     Content="Choose folder"
                                     Click="AddProject_OnClick"
                                     IsEnabled="{Binding !IsBusy}"
+                                    IsVisible="{Binding IsProjectView}"
                                     HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
