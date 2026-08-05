@@ -450,7 +450,9 @@ git -C <path> log --all --format=%H|%aI|%ae
 - Refresh all projects when the app opens
 - Allow manual refresh of one project
 - Allow manual refresh of all projects
-- Do not run repeated polling in V1
+- While the app remains open, run one refresh-all pass every 30 minutes
+- Scheduled refreshes must not overlap and stop when the application closes
+- Do not continuously poll or attach file-system watchers to project folders
 - Display cached persisted project information immediately, then update detected state asynchronously
 
 Git-derived state may remain in memory rather than being stored as canonical database data. Git is the source of truth.
@@ -628,7 +630,6 @@ src/
     App.axaml
     App.axaml.cs
     Program.cs
-    ViewLocator.cs
     ProjectLauncher.UI.Avalonia.csproj
 ```
 
@@ -748,7 +749,7 @@ Build these only after the V1 success criteria are met:
 - Full task-management features
 - Repository analytics dashboards
 - Plugin architecture
-- Automatic background polling
+- Continuous background polling or refresh while the application is closed
 - Docker, server, or homelab monitoring
 - AI-generated action suggestions
 

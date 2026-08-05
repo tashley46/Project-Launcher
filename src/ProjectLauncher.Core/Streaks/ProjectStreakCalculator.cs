@@ -24,8 +24,29 @@ public static class ProjectStreakCalculator
         var days = matching
             .Select(commit => DateOnly.FromDateTime(commit.AuthoredAt.LocalDateTime))
             .Distinct()
-            .Order()
             .ToArray();
+        var (current, longest, activeLast30) = CalculateFromActivityDates(days, today);
+
+        DateTimeOffset? lastCommit = matching.Length == 0
+            ? null
+            : matching.Max(commit => commit.AuthoredAt);
+        return new ProjectStreakCalculation(current, longest, lastCommit, activeLast30);
+    }
+
+    public static IReadOnlySet<DateOnly> GetActivityDates(
+        IEnumerable<GitCommit> commits,
+        IEnumerable<string> identityEmails) =>
+        commits
+            .Where(commit => identityEmails.Contains(commit.AuthorEmail, StringComparer.OrdinalIgnoreCase))
+            .GroupBy(commit => commit.Hash, StringComparer.Ordinal)
+            .Select(group => DateOnly.FromDateTime(group.First().AuthoredAt.LocalDateTime))
+            .ToHashSet();
+
+    public static (int CurrentDays, int LongestDays, int ActiveDaysLast30) CalculateFromActivityDates(
+        IEnumerable<DateOnly> activityDates,
+        DateOnly today)
+    {
+        var days = activityDates.Distinct().Order().ToArray();
         var daySet = days.ToHashSet();
 
         var start = daySet.Contains(today)
@@ -46,9 +67,6 @@ public static class ProjectStreakCalculator
 
         var firstDay = today.AddDays(-29);
         var activeLast30 = days.Count(day => day >= firstDay && day <= today);
-        DateTimeOffset? lastCommit = matching.Length == 0
-            ? null
-            : matching.Max(commit => commit.AuthoredAt);
-        return new ProjectStreakCalculation(current, longest, lastCommit, activeLast30);
+        return (current, longest, activeLast30);
     }
 }

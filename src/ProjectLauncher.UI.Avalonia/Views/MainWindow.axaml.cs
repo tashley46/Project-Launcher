@@ -7,18 +7,28 @@ namespace ProjectLauncher.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
+
     public MainWindow()
     {
         InitializeComponent();
         Opened += MainWindow_OnOpened;
+        Closed += (_, _) => _lifetimeCancellation.Cancel();
     }
 
     private async void MainWindow_OnOpened(object? sender, EventArgs e)
     {
         if (DataContext is MainViewModel viewModel)
         {
-            await viewModel.LoadProjectsAsync();
+            await viewModel.LoadProjectsAsync(_lifetimeCancellation.Token);
+            _ = viewModel.RunPeriodicGitRefreshAsync(_lifetimeCancellation.Token);
         }
+    }
+
+    private async void RefreshAllGit_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+            await viewModel.RefreshAllGitAsync(_lifetimeCancellation.Token);
     }
 
     private async void AddProject_OnClick(object? sender, RoutedEventArgs e)

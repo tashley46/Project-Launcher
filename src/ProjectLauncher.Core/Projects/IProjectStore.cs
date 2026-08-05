@@ -4,7 +4,10 @@ namespace ProjectLauncher.Core.Projects;
 
 public interface IProjectStore
 {
-    Task<bool> ExistsByFolderPathAsync(string normalizedPath, CancellationToken cancellationToken);
+    Task<bool> ExistsByFolderPathAsync(
+        string normalizedPath,
+        int? excludedProjectId,
+        CancellationToken cancellationToken);
 
     Task AddAsync(Project project, CancellationToken cancellationToken);
 

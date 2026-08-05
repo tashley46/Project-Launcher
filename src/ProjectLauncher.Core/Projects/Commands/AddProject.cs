@@ -58,6 +58,7 @@ public sealed class AddProjectCommandHandler(
         {
             alreadyExists = await projectStore.ExistsByFolderPathAsync(
                 normalizedPath,
+                null,
                 cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -5,8 +5,10 @@ using ProjectLauncher.Core.Projects;
 using ProjectLauncher.Core.Projects.Commands;
 using ProjectLauncher.Core.Projects.Queries;
 using ProjectLauncher.Core.Shared;
+using ProjectLauncher.Core.Shared.Errors;
 using ProjectLauncher.Core.Streaks.Queries;
 using ProjectLauncher.Core.Streaks.Commands;
+using ProjectLauncher.Services;
 
 namespace ProjectLauncher.ViewModels;
 
@@ -25,9 +27,13 @@ public sealed class MainViewModel(
     GetGitHubRepositoryQueryHandler getGitHubRepositoryHandler,
     GetProjectStreakQueryHandler getProjectStreakHandler,
     RefreshProjectStreakCommandHandler refreshProjectStreakHandler,
-    SetProjectFavoriteCommandHandler setProjectFavoriteHandler) : ViewModelBase
+    SetProjectFavoriteCommandHandler setProjectFavoriteHandler,
+    RelocateProjectCommandHandler relocateProjectHandler,
+    GetOverallStreakQueryHandler getOverallStreakHandler,
+    ProjectFolderPicker folderPicker) : ViewModelBase
 {
     private readonly List<ProjectCardViewModel> _allProjects = [];
+    private readonly SemaphoreSlim _gitRefreshLock = new(1, 1);
     private bool _isBusy;
     private bool _hasLoaded;
     private bool _isArchiveView;
@@ -35,6 +41,7 @@ public sealed class MainViewModel(
     private string? _errorMessage;
     private string _searchText = string.Empty;
     private string _selectedStatusFilter = "All";
+    private int _currentStreakDays;
 
     public ObservableCollection<ProjectCardViewModel> Projects { get; } = [];
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
@@ -51,8 +58,8 @@ public sealed class MainViewModel(
     public bool HasNoProjects => !HasProjects;
     public int ProjectCount => _allProjects.Count;
     public int ActiveProjectCount => _allProjects.Count(project => project.Lifecycle == "Active");
-    public int CurrentStreakDays => _allProjects.Count == 0 ? 0 : _allProjects.Max(project => project.CurrentStreakDays);
-    public IReadOnlyList<string> StatusFilters { get; } = ["All", "Active", "Paused", "Clean", "Dirty", "Not Git", "GitHub connected"];
+    public int CurrentStreakDays { get => _currentStreakDays; private set => SetProperty(ref _currentStreakDays, value); }
+    public IReadOnlyList<string> StatusFilters { get; } = ["All", "Active", "Paused", "Clean", "Dirty", "Missing", "Not Git", "GitHub connected"];
 
     public string SearchText
     {
@@ -86,7 +93,7 @@ public sealed class MainViewModel(
         var result = await RunBusyAsync(() => getProjectsHandler.HandleAsync(new GetProjectsQuery(), cancellationToken));
         if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
         ReplaceProjects(result.Value);
-        await RefreshGitStatusesAsync(cancellationToken);
+        await RefreshAllGitAsync(cancellationToken);
     }
 
     public async Task ShowArchivedProjectsAsync(CancellationToken cancellationToken = default)
@@ -106,7 +113,7 @@ public sealed class MainViewModel(
             new GetFavoriteProjectsQuery(), cancellationToken));
         if (!result.IsSuccess || result.Value is null) { ShowError(result.Error?.Message); return; }
         ReplaceProjects(result.Value);
-        await RefreshGitStatusesAsync(cancellationToken);
+        await RefreshAllGitAsync(cancellationToken);
     }
 
     public async Task AddProjectAsync(string folderPath, CancellationToken cancellationToken = default)
@@ -120,7 +127,8 @@ public sealed class MainViewModel(
             _allProjects.Add(card);
             ApplyFilters();
             NotifyDashboardChanged();
-            await RefreshGitStatusAsync(card, cancellationToken);
+            await RefreshGitStatusAsync(result.Value, card, cancellationToken);
+            await RefreshOverallStreakAsync(cancellationToken);
         }
     }
 
@@ -133,7 +141,35 @@ public sealed class MainViewModel(
             SaveProjectEditAsync,
             ChangeArchiveStateAsync,
             RefreshProjectStreakAsync,
-            ToggleProjectFavoriteAsync);
+            ToggleProjectFavoriteAsync,
+            RefreshProjectGitAsync,
+            RecoverProjectFolderAsync);
+
+    public async Task RefreshAllGitAsync(CancellationToken cancellationToken = default)
+    {
+        if (!await _gitRefreshLock.WaitAsync(0, cancellationToken)) return;
+        try
+        {
+            var projects = await getProjectsHandler.HandleAsync(new GetProjectsQuery(), cancellationToken);
+            if (!projects.IsSuccess || projects.Value is null) { ShowError(projects.Error?.Message); return; }
+            foreach (var project in projects.Value)
+                await RefreshGitStatusAsync(project, _allProjects.FirstOrDefault(card => card.Id == project.Id), cancellationToken);
+            await RefreshOverallStreakAsync(cancellationToken);
+            ApplyFilters();
+        }
+        finally { _gitRefreshLock.Release(); }
+    }
+
+    public async Task RunPeriodicGitRefreshAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(30));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+                await RefreshAllGitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+    }
 
     private async Task ToggleProjectFavoriteAsync(ProjectCardViewModel card)
     {
@@ -157,6 +193,7 @@ public sealed class MainViewModel(
         }
         card.SetStreak(result.Value);
         NotifyDashboardChanged();
+        await RefreshOverallStreakAsync(CancellationToken.None);
     }
 
     private async Task SaveProjectEditAsync(ProjectCardViewModel card)
@@ -220,31 +257,38 @@ public sealed class MainViewModel(
         NotifyDashboardChanged();
     }
 
-    private async Task RefreshGitStatusesAsync(CancellationToken cancellationToken)
+    private async Task RefreshProjectGitAsync(ProjectCardViewModel card)
     {
-        foreach (var card in _allProjects)
+        if (!await _gitRefreshLock.WaitAsync(0)) return;
+        try
         {
-            await RefreshGitStatusAsync(card, cancellationToken);
+            var project = await getProjectHandler.HandleAsync(new GetProjectQuery(card.Id));
+            if (!project.IsSuccess || project.Value is null) { ShowError(project.Error?.Message); return; }
+            await RefreshGitStatusAsync(project.Value, card, CancellationToken.None);
+            await RefreshOverallStreakAsync(CancellationToken.None);
+            ApplyFilters();
         }
+        finally { _gitRefreshLock.Release(); }
     }
 
     private async Task RefreshGitStatusAsync(
-        ProjectCardViewModel card,
+        ProjectResponse project,
+        ProjectCardViewModel? card,
         CancellationToken cancellationToken)
     {
         var result = await getProjectGitStatusHandler.HandleAsync(
-            new GetProjectGitStatusQuery(card.Id, card.FolderPath),
+            new GetProjectGitStatusQuery(project.Id, project.FolderPath),
             cancellationToken);
         if (result.IsSuccess && result.Value is not null)
         {
-            card.SetGitSnapshot(result.Value);
+            card?.SetGitSnapshot(result.Value);
             var snapshot = result.Value;
             if (snapshot.GitHubUrl is not null && snapshot.GitHubOwner is not null &&
                 snapshot.GitHubRepositoryName is not null)
             {
                 var connection = await connectGitHubRepositoryHandler.HandleAsync(
                     new ConnectGitHubRepositoryCommand(
-                        card.Id,
+                        project.Id,
                         snapshot.GitHubOwner,
                         snapshot.GitHubRepositoryName,
                         snapshot.GitHubUrl,
@@ -252,14 +296,39 @@ public sealed class MainViewModel(
                         snapshot.DefaultBranch),
                     cancellationToken);
                 if (connection.IsSuccess && connection.Value is not null)
-                    card.SetGitHubConnection(connection.Value);
+                    card?.SetGitHubConnection(connection.Value);
                 else
                     ShowError(connection.Error?.Message);
             }
-            ApplyFilters();
         }
+        else if (result.Error?.Code == ProjectErrors.FolderNotFound.Code)
+            card?.SetFolderMissing(result.Error.Message);
         else
-            card.SetGitError(result.Error?.Message ?? "Git status could not be read.");
+            card?.SetGitError(result.Error?.Message ?? "Git status could not be read.");
+
+        if (result.IsSuccess)
+        {
+            var streak = await refreshProjectStreakHandler.HandleAsync(
+                new RefreshProjectStreakCommand(project.Id), cancellationToken);
+            if (streak.IsSuccess && streak.Value is not null) card?.SetStreak(streak.Value);
+        }
+    }
+
+    private async Task RefreshOverallStreakAsync(CancellationToken cancellationToken)
+    {
+        var result = await getOverallStreakHandler.HandleAsync(new GetOverallStreakQuery(), cancellationToken);
+        if (result.IsSuccess && result.Value is not null) CurrentStreakDays = result.Value.CurrentDays;
+        else ShowError(result.Error?.Message);
+    }
+
+    private async Task RecoverProjectFolderAsync(ProjectCardViewModel card)
+    {
+        var path = await folderPicker.PickAsync($"Locate {card.Name}");
+        if (path is null) return;
+        var result = await RunBusyAsync(() => relocateProjectHandler.HandleAsync(new RelocateProjectCommand(card.Id, path)));
+        if (!result.IsSuccess) { ShowError(result.Error?.Message); return; }
+        if (IsFavoritesView) await ShowFavoriteProjectsAsync();
+        else await ShowProjectsAsync();
     }
 
     private void ShowError(string? message) => ErrorMessage = message ?? "The project operation could not be completed.";
@@ -274,6 +343,7 @@ public sealed class MainViewModel(
         {
             "Active" or "Paused" => filtered.Where(project => project.Lifecycle == SelectedStatusFilter),
             "Clean" or "Dirty" => filtered.Where(project => project.WorkingTreeStatus == SelectedStatusFilter),
+            "Missing" => filtered.Where(project => project.IsFolderMissing),
             "Not Git" => filtered.Where(project => project.WorkingTreeStatus == "Not Git"),
             "GitHub connected" => filtered.Where(project => project.RepositoryStatus == "GitHub connected"),
             _ => filtered,

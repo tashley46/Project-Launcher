@@ -79,13 +79,13 @@
                                FontSize="14"
                                Foreground="{DynamicResource TextSecondaryBrush}" />
                 </StackPanel>
-                <Button Grid.Column="1"
-                        Classes="primary-action"
-                        Content="+  Add project"
-                        Click="AddProject_OnClick"
-                        IsEnabled="{Binding !IsBusy}"
-                        IsVisible="{Binding IsProjectView}"
-                        VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
+                            IsVisible="{Binding IsProjectView}" VerticalAlignment="Center">
+                    <Button Classes="secondary-action" Content="Refresh All Git"
+                            Click="RefreshAllGit_OnClick" IsEnabled="{Binding !IsBusy}" />
+                    <Button Classes="primary-action" Content="+  Add project"
+                            Click="AddProject_OnClick" IsEnabled="{Binding !IsBusy}" />
+                </StackPanel>
             </Grid>
 
             <ScrollViewer Grid.Row="1" Margin="0,28,0,0">

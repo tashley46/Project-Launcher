@@ -3,8 +3,11 @@ obj/
 .idea/
 .vs/
 .vscode/
+.venv/
 *.user
 *.suo
+.DS_Store
+Thumbs.db
 TestResults/
 *.db
 *.db-shm

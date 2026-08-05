@@ -12,6 +12,7 @@ using ProjectLauncher.Core.Infrastructure.Git;
 using ProjectLauncher.Data.EF;
 using ProjectLauncher.ViewModels;
 using ProjectLauncher.Views;
+using ProjectLauncher.Services;
 
 namespace ProjectLauncher;
 
@@ -59,11 +60,16 @@ public partial class App : Application
         services.AddTransient<ConnectGitHubRepositoryCommandHandler>();
         services.AddTransient<GetProjectStreakQueryHandler>();
         services.AddTransient<RefreshProjectStreakCommandHandler>();
+        services.AddTransient<GetOverallStreakQueryHandler>();
         services.AddTransient<GetProjectGitStatusQueryHandler>();
+        services.AddTransient<RelocateProjectCommandHandler>();
+        services.AddSingleton<ProjectFolderPicker>();
         services.AddTransient<MainViewModel>();
-        services.AddTransient<MainWindow>(provider => new MainWindow
+        services.AddTransient<MainWindow>(provider =>
         {
-            DataContext = provider.GetRequiredService<MainViewModel>(),
+            var window = new MainWindow { DataContext = provider.GetRequiredService<MainViewModel>() };
+            provider.GetRequiredService<ProjectFolderPicker>().SetOwner(window);
+            return window;
         });
 
         return services.BuildServiceProvider();

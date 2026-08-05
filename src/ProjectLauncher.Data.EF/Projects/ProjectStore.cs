@@ -8,12 +8,14 @@ public sealed class ProjectStore(IDbContextFactory<ApplicationDbContext> context
 {
     public async Task<bool> ExistsByFolderPathAsync(
         string normalizedPath,
+        int? excludedProjectId,
         CancellationToken cancellationToken)
     {
         await using var context = await contextFactory.CreateDbContextAsync(cancellationToken);
         var paths = await context.Projects
             .AsNoTracking()
-            .Where(project => !project.IsDeleted)
+            .Where(project => !project.IsDeleted &&
+                (!excludedProjectId.HasValue || project.Id != excludedProjectId.Value))
             .Select(project => project.Folder.Path)
             .ToListAsync(cancellationToken);
 

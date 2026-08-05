@@ -13,6 +13,8 @@ public sealed class ProjectCardViewModel : ViewModelBase
     private readonly Func<ProjectCardViewModel, Task> _changeArchiveState;
     private readonly Func<ProjectCardViewModel, Task> _refreshStreak;
     private readonly Func<ProjectCardViewModel, Task> _toggleFavorite;
+    private readonly Func<ProjectCardViewModel, Task> _refreshGit;
+    private readonly Func<ProjectCardViewModel, Task> _recoverFolder;
     private bool _isDetailsVisible;
     private bool _isEditing;
     private bool _hasLoadedDetails;
@@ -21,6 +23,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
     private string _lifecycle;
     private int _currentStreakDays;
     private bool _isFavorite;
+    private bool _isFolderMissing;
 
     private ProjectCardViewModel(
         ProjectResponse response,
@@ -28,7 +31,9 @@ public sealed class ProjectCardViewModel : ViewModelBase
         Func<ProjectCardViewModel, Task> saveEdit,
         Func<ProjectCardViewModel, Task> changeArchiveState,
         Func<ProjectCardViewModel, Task> refreshStreak,
-        Func<ProjectCardViewModel, Task> toggleFavorite)
+        Func<ProjectCardViewModel, Task> toggleFavorite,
+        Func<ProjectCardViewModel, Task> refreshGit,
+        Func<ProjectCardViewModel, Task> recoverFolder)
     {
         Id = response.Id;
         IsArchived = response.IsDeleted;
@@ -48,6 +53,8 @@ public sealed class ProjectCardViewModel : ViewModelBase
         _changeArchiveState = changeArchiveState;
         _refreshStreak = refreshStreak;
         _toggleFavorite = toggleFavorite;
+        _refreshGit = refreshGit;
+        _recoverFolder = recoverFolder;
 
         ViewProjectCommand = new AsyncRelayCommand(ToggleDetailsAsync);
         BeginEditCommand = new RelayCommand(BeginEdit);
@@ -56,11 +63,14 @@ public sealed class ProjectCardViewModel : ViewModelBase
         ChangeArchiveStateCommand = new AsyncRelayCommand(() => _changeArchiveState(this));
         RefreshStreakCommand = new AsyncRelayCommand(() => _refreshStreak(this));
         ToggleFavoriteCommand = new AsyncRelayCommand(() => _toggleFavorite(this));
+        RefreshGitCommand = new AsyncRelayCommand(() => _refreshGit(this));
+        RecoverFolderCommand = new AsyncRelayCommand(() => _recoverFolder(this));
     }
 
     public int Id { get; }
     public bool IsArchived { get; }
     public bool IsActiveProject => !IsArchived;
+    public bool IsFolderMissing { get => _isFolderMissing; private set => SetProperty(ref _isFolderMissing, value); }
     public string FolderPath { get; }
     public bool IsFavorite
     {
@@ -122,6 +132,8 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public IAsyncRelayCommand ChangeArchiveStateCommand { get; }
     public IAsyncRelayCommand RefreshStreakCommand { get; }
     public IAsyncRelayCommand ToggleFavoriteCommand { get; }
+    public IAsyncRelayCommand RefreshGitCommand { get; }
+    public IAsyncRelayCommand RecoverFolderCommand { get; }
 
     public static ProjectCardViewModel FromResponse(
         ProjectResponse response,
@@ -129,8 +141,10 @@ public sealed class ProjectCardViewModel : ViewModelBase
         Func<ProjectCardViewModel, Task> saveEdit,
         Func<ProjectCardViewModel, Task> changeArchiveState,
         Func<ProjectCardViewModel, Task> refreshStreak,
-        Func<ProjectCardViewModel, Task> toggleFavorite) =>
-        new(response, loadDetails, saveEdit, changeArchiveState, refreshStreak, toggleFavorite);
+        Func<ProjectCardViewModel, Task> toggleFavorite,
+        Func<ProjectCardViewModel, Task> refreshGit,
+        Func<ProjectCardViewModel, Task> recoverFolder) =>
+        new(response, loadDetails, saveEdit, changeArchiveState, refreshStreak, toggleFavorite, refreshGit, recoverFolder);
 
     public void ApplyEdit(ProjectResponse project)
     {
@@ -176,6 +190,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
 
     public void SetGitSnapshot(GitRepositorySnapshot snapshot)
     {
+        IsFolderMissing = false;
         _gitSnapshot = snapshot;
         if (snapshot.Error is not null)
         {
@@ -254,6 +269,17 @@ public sealed class ProjectCardViewModel : ViewModelBase
         OnPropertyChanged(nameof(BranchLabel));
         OnPropertyChanged(nameof(WorkingTreeStatus));
         OnPropertyChanged(nameof(LatestCommitSummary));
+    }
+
+    public void SetFolderMissing(string message)
+    {
+        IsFolderMissing = true;
+        BranchLabel = "Folder missing";
+        WorkingTreeStatus = "Missing";
+        LatestCommitSummary = message;
+        FileChangeSummary = "Choose the folder's new location to recover this project.";
+        foreach (var property in new[] { nameof(BranchLabel), nameof(WorkingTreeStatus), nameof(LatestCommitSummary), nameof(FileChangeSummary) })
+            OnPropertyChanged(property);
     }
 
     private void BeginEdit()
