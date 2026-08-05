@@ -20,4 +20,9 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProjectLauncher.Core\ProjectLauncher.Core.csproj" />
+    <ProjectReference Include="..\ProjectLauncher.Data.EF\ProjectLauncher.Data.EF.csproj" />
+  </ItemGroup>
 </Project>

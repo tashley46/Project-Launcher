@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/ProjectLauncher/ProjectLauncher.csproj" />
+    <Project Path="src/ProjectLaunch.Core.Domain/ProjectLaunch.Core.Domain.csproj" />
+    <Project Path="src/ProjectLauncher.Core/ProjectLauncher.Core.csproj" />
+    <Project Path="src/ProjectLauncher.Data.EF/ProjectLauncher.Data.EF.csproj" />
+    <Project Path="src/ProjectLauncher.UI.Avalonia/ProjectLauncher.UI.Avalonia.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace ProjectLauncher.Data.EF;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddProjectLauncherData(
+        this IServiceCollection services,
+        string connectionString)
+    {
+        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(connectionString));
+        return services;
+    }
+}
+
