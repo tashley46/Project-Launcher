@@ -65,4 +65,12 @@ public partial class MainWindow : Window
             await viewModel.ShowArchivedProjectsAsync();
         }
     }
+
+    private async void Favorites_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel viewModel)
+        {
+            await viewModel.ShowFavoriteProjectsAsync();
+        }
+    }
 }

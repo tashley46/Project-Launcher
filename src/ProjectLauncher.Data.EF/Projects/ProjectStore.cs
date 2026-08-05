@@ -65,8 +65,7 @@ public sealed class ProjectStore(IDbContextFactory<ApplicationDbContext> context
             .Include(project => project.GitHubRepository)
             .ToListAsync(cancellationToken);
 
-        return projects
-            .OrderByDescending(project => project.ModifiedDateTime)
+        return OrderForDashboard(projects)
             .ToArray();
     }
 
@@ -85,10 +84,29 @@ public sealed class ProjectStore(IDbContextFactory<ApplicationDbContext> context
             .ToArray();
     }
 
+    public async Task<IReadOnlyList<Project>> GetFavoritesAsync(CancellationToken cancellationToken)
+    {
+        await using var context = await contextFactory.CreateDbContextAsync(cancellationToken);
+        var projects = await context.Projects
+            .AsNoTracking()
+            .Where(project => !project.IsDeleted && project.IsFavorite)
+            .Include(project => project.Streak)
+            .Include(project => project.GitHubRepository)
+            .ToListAsync(cancellationToken);
+        return OrderForDashboard(projects).ToArray();
+    }
+
     public async Task UpdateAsync(Project project, CancellationToken cancellationToken)
     {
         await using var context = await contextFactory.CreateDbContextAsync(cancellationToken);
         context.Projects.Update(project);
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    private static IOrderedEnumerable<Project> OrderForDashboard(IEnumerable<Project> projects) =>
+        projects
+            .OrderByDescending(project => project.IsFavorite)
+            .ThenByDescending(project => project.LastOpenedAt)
+            .ThenByDescending(project => project.ModifiedDateTime)
+            .ThenBy(project => project.Name, StringComparer.OrdinalIgnoreCase);
 }

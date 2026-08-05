@@ -73,6 +73,10 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                     <Button Classes="secondary-action"
+                            Content="{Binding FavoriteButtonLabel}"
+                            IsVisible="{Binding IsActiveProject}"
+                            Command="{Binding ToggleFavoriteCommand}" />
+                    <Button Classes="secondary-action"
                             Content="Edit"
                             IsVisible="{Binding IsActiveProject}"
                             Command="{Binding BeginEditCommand}" />

@@ -49,10 +49,12 @@ public partial class App : Application
         services.AddTransient<GetProjectQueryHandler>();
         services.AddTransient<GetProjectsQueryHandler>();
         services.AddTransient<GetArchivedProjectsQueryHandler>();
+        services.AddTransient<GetFavoriteProjectsQueryHandler>();
         services.AddTransient<GetProjectIncludingDeletedQueryHandler>();
         services.AddTransient<UpdateProjectCommandHandler>();
         services.AddTransient<ArchiveProjectCommandHandler>();
         services.AddTransient<RestoreProjectCommandHandler>();
+        services.AddTransient<SetProjectFavoriteCommandHandler>();
         services.AddTransient<GetGitHubRepositoryQueryHandler>();
         services.AddTransient<ConnectGitHubRepositoryCommandHandler>();
         services.AddTransient<GetProjectStreakQueryHandler>();

@@ -12,6 +12,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
     private readonly Func<ProjectCardViewModel, Task> _saveEdit;
     private readonly Func<ProjectCardViewModel, Task> _changeArchiveState;
     private readonly Func<ProjectCardViewModel, Task> _refreshStreak;
+    private readonly Func<ProjectCardViewModel, Task> _toggleFavorite;
     private bool _isDetailsVisible;
     private bool _isEditing;
     private bool _hasLoadedDetails;
@@ -19,20 +20,22 @@ public sealed class ProjectCardViewModel : ViewModelBase
     private string _name;
     private string _lifecycle;
     private int _currentStreakDays;
+    private bool _isFavorite;
 
     private ProjectCardViewModel(
         ProjectResponse response,
         Func<ProjectCardViewModel, Task> loadDetails,
         Func<ProjectCardViewModel, Task> saveEdit,
         Func<ProjectCardViewModel, Task> changeArchiveState,
-        Func<ProjectCardViewModel, Task> refreshStreak)
+        Func<ProjectCardViewModel, Task> refreshStreak,
+        Func<ProjectCardViewModel, Task> toggleFavorite)
     {
         Id = response.Id;
         IsArchived = response.IsDeleted;
         _name = response.Name;
         FolderPath = response.FolderPath;
         _lifecycle = response.Lifecycle.ToString();
-        IsFavorite = response.IsFavorite;
+        _isFavorite = response.IsFavorite;
         _currentStreakDays = response.CurrentStreakDays;
         Description = response.Description ?? "No description has been added.";
         EditName = response.Name;
@@ -44,6 +47,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
         _saveEdit = saveEdit;
         _changeArchiveState = changeArchiveState;
         _refreshStreak = refreshStreak;
+        _toggleFavorite = toggleFavorite;
 
         ViewProjectCommand = new AsyncRelayCommand(ToggleDetailsAsync);
         BeginEditCommand = new RelayCommand(BeginEdit);
@@ -51,13 +55,22 @@ public sealed class ProjectCardViewModel : ViewModelBase
         SaveEditCommand = new AsyncRelayCommand(() => _saveEdit(this));
         ChangeArchiveStateCommand = new AsyncRelayCommand(() => _changeArchiveState(this));
         RefreshStreakCommand = new AsyncRelayCommand(() => _refreshStreak(this));
+        ToggleFavoriteCommand = new AsyncRelayCommand(() => _toggleFavorite(this));
     }
 
     public int Id { get; }
     public bool IsArchived { get; }
     public bool IsActiveProject => !IsArchived;
     public string FolderPath { get; }
-    public bool IsFavorite { get; }
+    public bool IsFavorite
+    {
+        get => _isFavorite;
+        private set
+        {
+            if (SetProperty(ref _isFavorite, value))
+                OnPropertyChanged(nameof(FavoriteButtonLabel));
+        }
+    }
     public int CurrentStreakDays { get => _currentStreakDays; private set => SetProperty(ref _currentStreakDays, value); }
     public string Name { get => _name; private set => SetProperty(ref _name, value); }
     public string Lifecycle { get => _lifecycle; private set => SetProperty(ref _lifecycle, value); }
@@ -86,6 +99,7 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public string RemoteLabel { get; private set; } = "No remote";
     public string DefaultBranchLabel { get; private set; } = "Unknown";
     public string ArchiveButtonLabel => IsArchived ? "Restore project" : "Archive project";
+    public string FavoriteButtonLabel => IsFavorite ? "Unfavorite" : "Favorite";
     public string StreakLabel => CurrentStreakDays == 1 ? "1 day streak" : $"{CurrentStreakDays} day streak";
     public string DetailsButtonLabel => IsDetailsVisible ? "Hide details" : "View project";
 
@@ -107,14 +121,16 @@ public sealed class ProjectCardViewModel : ViewModelBase
     public IAsyncRelayCommand SaveEditCommand { get; }
     public IAsyncRelayCommand ChangeArchiveStateCommand { get; }
     public IAsyncRelayCommand RefreshStreakCommand { get; }
+    public IAsyncRelayCommand ToggleFavoriteCommand { get; }
 
     public static ProjectCardViewModel FromResponse(
         ProjectResponse response,
         Func<ProjectCardViewModel, Task> loadDetails,
         Func<ProjectCardViewModel, Task> saveEdit,
         Func<ProjectCardViewModel, Task> changeArchiveState,
-        Func<ProjectCardViewModel, Task> refreshStreak) =>
-        new(response, loadDetails, saveEdit, changeArchiveState, refreshStreak);
+        Func<ProjectCardViewModel, Task> refreshStreak,
+        Func<ProjectCardViewModel, Task> toggleFavorite) =>
+        new(response, loadDetails, saveEdit, changeArchiveState, refreshStreak, toggleFavorite);
 
     public void ApplyEdit(ProjectResponse project)
     {
@@ -130,6 +146,8 @@ public sealed class ProjectCardViewModel : ViewModelBase
         OnPropertyChanged(nameof(EditDescription));
         OnPropertyChanged(nameof(EditLifecycle));
     }
+
+    public void ApplyFavorite(ProjectResponse project) => IsFavorite = project.IsFavorite;
 
     public void SetDetails(ProjectResponse project, GitHubRepositoryResponse repository, ProjectStreakResponse streak)
     {

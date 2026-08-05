@@ -48,7 +48,8 @@
                                Foreground="{DynamicResource TextMutedBrush}" />
                     <Button Classes="nav-item selected" Content="Projects" HorizontalContentAlignment="Left"
                             Click="Projects_OnClick" />
-                    <Button Classes="nav-item" Content="Favorites" HorizontalContentAlignment="Left" />
+                    <Button Classes="nav-item" Content="Favorites" HorizontalContentAlignment="Left"
+                            Click="Favorites_OnClick" />
                     <Button Classes="nav-item" Content="Archived" HorizontalContentAlignment="Left"
                             Click="Archived_OnClick" />
                 </StackPanel>
@@ -135,6 +136,18 @@
                                     Foreground="#9F1239" />
                         </Grid>
                     </Border>
+
+                    <Grid ColumnDefinitions="*,220" ColumnSpacing="12"
+                          IsVisible="{Binding !IsArchiveView}">
+                        <TextBox Text="{Binding SearchText}"
+                                 PlaceholderText="Search projects by name or path…"
+                                 MinHeight="42" />
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding StatusFilters}"
+                                  SelectedItem="{Binding SelectedStatusFilter}"
+                                  MinHeight="42"
+                                  PlaceholderText="Filter by status" />
+                    </Grid>
 
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>

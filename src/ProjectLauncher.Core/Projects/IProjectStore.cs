@@ -16,5 +16,7 @@ public interface IProjectStore
 
     Task<IReadOnlyList<Project>> GetArchivedAsync(CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<Project>> GetFavoritesAsync(CancellationToken cancellationToken);
+
     Task UpdateAsync(Project project, CancellationToken cancellationToken);
 }
